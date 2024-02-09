@@ -1,14 +1,18 @@
-CC = gcc
-CFLAGS = -Wall -g
+CC = clang
+CFLAGS = -Wall -g -v
 LDFLAGS = -Wall
 LDLIBS =
-OBJECTS =
+OBJECTS = fsm FSM.o
 
 .PHONY: all clean
 
-all:
+all: fsm
 
-%.o: %.c
+fsm : FSM.o
+
+FSM.o : FSM.cpp FSM.h
+
+%.o: %.cpp
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:
