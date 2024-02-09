@@ -1,16 +1,18 @@
-//
-// Created by Miktad Cakmak on 1/26/24.
-//
-
-#ifndef BMS_FSM_FSM_H
-#define BMS_FSM_FSM_H
+#ifndef FSM_H
+#define FSM_H
 
 typedef enum{
-    DISABLED, ENABLED //Add states (discuss with Silas/Link
+    INITIAL,
+    STARTUP,
+    NORMALOP,
+    CELL_BALANCE,
+    FAULT_COMM,
+    FAULT_TMPVOLT,
+    FAULT_UNEXPECTED,
 }FSM_STATE;
 
 typedef struct {
     FSM_STATE presentState;
-};
+}State;
 
-#endif //BMS_FSM_FSM_H
+#endif FSM_H
