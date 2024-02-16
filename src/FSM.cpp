@@ -3,9 +3,9 @@
 #include "FSM.h"
 
 State state;
-int communicationsOnOff = 0;
-int fault = 1;
-int readyToRun = 0;
+bool communicationsOnOff = 0;
+bool fault = 1;
+bool readyToRun = 0;
 
 
 void transition(FSM_STATE nextState) {
@@ -16,7 +16,7 @@ void initial() {
     //Run Boot commands
 
     //Establish communications
-    int connectionSuccess = establishConnection();
+    bool connectionSuccess = establishConnection();
     if (connectionSuccess) {
         communicationsOnOff = 1;
     }
@@ -59,6 +59,7 @@ int main() {
     while (1) {
         switch (state.presentState) {
             case INITIAL:
+                initial();
                 break;
         }
     }
