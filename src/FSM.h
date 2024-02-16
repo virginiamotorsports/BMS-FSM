@@ -19,6 +19,7 @@ bool optimalValuesAchieved();
 int establishConnection();
 bool commEstablished();
 bool optimalValuesAchieved();
+void runCellBalancing();
 
 void transition(FSM_STATE nextState);
 void initial();

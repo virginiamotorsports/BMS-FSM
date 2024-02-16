@@ -98,6 +98,10 @@ bool optimalValuesAchieved() {
     return false;
 }
 
+void runCellBalancing() {
+    //Run cell balancing
+}
+
 void cellBalancing() {
     runCellBalancing();
 
