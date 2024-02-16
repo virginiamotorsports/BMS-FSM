@@ -29,7 +29,7 @@ void initial() {
 }
 
 void startup() {
-    if(communicationsOnOff){
+    if (communicationsOnOff){
         //Write registers to the device
 
         //Exit Routine
@@ -38,7 +38,7 @@ void startup() {
 }
 
 void normalOperations() {
-    if(readyToRun){
+    if (readyToRun){
         //Read voltages and temps
 
         //Send data via CAN
@@ -51,6 +51,12 @@ void normalOperations() {
 }
 
 void cellBalancing() {
+    runCellBalancing();
+
+    //Exit Routine
+    if(balancingComplete()) {
+        transition(NORMALOP);
+    }
 
 }
 
