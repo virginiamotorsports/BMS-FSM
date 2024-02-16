@@ -16,7 +16,7 @@ void initial() {
     //Run Boot commands
 
     //Establish communications
-    successful = establishConnection()
+    successfull = establishConnection();
     if (successfull) {
         communicationsOnOff = 1;
     }
@@ -59,7 +59,6 @@ int main() {
     while (1) {
         switch (state.presentState) {
             case INITIAL:
-                initial();
                 break;
         }
     }
