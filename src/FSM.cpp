@@ -3,16 +3,15 @@
 #include "FSM.h"
 
 State state;
-bool communicationsOnOff = 0;
-bool fault = 1;
-bool readyToRun = 0;
-
-bool optimalValuesAchieved();
+bool communicationsOnOff = false;
+bool fault = true;
+bool readyToRun = false;
+bool endCellBalancing = false;
+bool startCellBalancing = false;
 
 int establishConnection(){
     return 0;
 }
-
 
 void transition(FSM_STATE nextState) {
     state.presentState = nextState;
@@ -52,7 +51,7 @@ void normalOperations() {
         fault = 1; //Fault pin goes high until fault
 
         //Exit Routine
-        if(cellBalancingTimer()){
+        if(startCellBalancing){
             transition(CELL_BALANCE);
         }
     }
@@ -103,14 +102,11 @@ void cellBalancing() {
     runCellBalancing();
 
     //Exit Routine
-    if(balancingComplete()) {
+    if (endCellBalancing) {
+        balancingComplete=false;
         transition(NORMALOP);
     }
-
-}
-
-bool cellBalancingTimer() {
-    return false;
+    //Check faults
 }
 
 int main() {
