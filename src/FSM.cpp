@@ -16,8 +16,8 @@ void initial() {
     //Run Boot commands
 
     //Establish communications
-    successfull = establishConnection();
-    if (successfull) {
+    int connectionSuccess = establishConnection();
+    if (connectionSuccess) {
         communicationsOnOff = 1;
     }
 
