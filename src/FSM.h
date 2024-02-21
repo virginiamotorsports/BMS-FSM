@@ -20,15 +20,15 @@ int establishConnection();
 bool commEstablished();
 bool optimalValuesAchieved();
 void runCellBalancing();
-
 void transition(FSM_STATE nextState);
+
 void initial();
 void startup();
 void normalOperations();
-void unexpectedFault();
+void cellBalancing();
 void commFault();
 void tempVoltageFault();
-void cellBalancing();
+void unexpectedFault();
 
 
 #endif FSM_H

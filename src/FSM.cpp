@@ -120,7 +120,24 @@ int main() {
             case INITIAL:
                 initial();
                 break;
-            default:
+            case STARTUP:
+                startup();
+                break;
+            case NORMALOP:
+                normalOperations();
+                break;
+            case CELL_BALANCE:
+                cellBalancing();
+                break;
+            case FAULT_COMM:
+                commFault();
+                break;
+            case FAULT_TMPVOLT:
+                tempVoltageFault();
+                break;
+            case FAULT_UNEXPECTED:
+                unexpectedFault();
+                break;
         }
     }
 }
