@@ -30,5 +30,15 @@ void commFault();
 void tempVoltageFault();
 void unexpectedFault();
 
+typedef struct{
+    void (*enter)();
+    void (*action)() = &initial;
+    void (*exit)() = &exitInitial;
+
+} Initial;
+
+
+
+
 
 #endif FSM_H

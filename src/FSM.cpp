@@ -33,6 +33,10 @@ void initial() {
     }
 }
 
+void exitInitial(){
+
+}
+
 void startup() {
     if (communicationsOnOff){
         //Write registers to the device
