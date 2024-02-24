@@ -13,9 +13,9 @@ typedef enum{
 
 typedef struct {
     FSM_STATE presentState;
-    void (*enter)();
-    void (*action)();
-    void (*exit)();
+    void *(*enter)();
+    void *(*action)();
+    void *(*exit)();
 } State;
 
 bool optimalValuesAchieved();

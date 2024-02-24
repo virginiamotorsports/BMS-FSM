@@ -33,8 +33,10 @@ void initial() {
     }
 }
 
-enterInitial(){
+void *enterInitial(){
+    std::cout << "Entering initial" << std::endl;
 
+    return (void *) &enterInitial;
 }
 
 void exitInitial(){
@@ -115,7 +117,7 @@ void cellBalancing() {
 
     //Exit Routine
     if (endCellBalancing) {
-        balancingComplete=false;
+        endCellBalancing=false;
         transition(NORMALOP);
     }
     //Check faults
@@ -125,8 +127,9 @@ int main() {
     state.presentState = INITIAL;
     state.enter = &enterInitial;
     while (true) {
-        state.action = state.enter
+        state.action = (void *(*)())(*state.enter)();
 
+        /*
         switch (state.presentState) {
             case INITIAL:
                 initial();
@@ -149,7 +152,6 @@ int main() {
             case FAULT_UNEXPECTED:
                 unexpectedFault();
                 break;
-        }
+        }*/
     }
 }
-
