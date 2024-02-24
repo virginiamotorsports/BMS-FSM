@@ -33,6 +33,10 @@ void initial() {
     }
 }
 
+enterInitial(){
+
+}
+
 void exitInitial(){
 
 }
@@ -119,7 +123,10 @@ void cellBalancing() {
 
 int main() {
     state.presentState = INITIAL;
-    while (1) {
+    state.enter = &enterInitial;
+    while (true) {
+        state.action = state.enter
+
         switch (state.presentState) {
             case INITIAL:
                 initial();

@@ -13,7 +13,10 @@ typedef enum{
 
 typedef struct {
     FSM_STATE presentState;
-}State;
+    void (*enter)();
+    void (*action)();
+    void (*exit)();
+} State;
 
 bool optimalValuesAchieved();
 int establishConnection();
@@ -29,16 +32,5 @@ void cellBalancing();
 void commFault();
 void tempVoltageFault();
 void unexpectedFault();
-
-typedef struct{
-    void (*enter)();
-    void (*action)() = &initial;
-    void (*exit)() = &exitInitial;
-
-} Initial;
-
-
-
-
 
 #endif FSM_H
