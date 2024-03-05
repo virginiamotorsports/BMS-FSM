@@ -1,82 +1,96 @@
 #include <iostream>
+#include <map>
 
 #include "FSM.h"
 
-State state;
 bool communicationsOnOff = false;
 bool fault = true;
 bool readyToRun = false;
 bool endCellBalancing = false;
 bool startCellBalancing = false;
 
+
+State initialState = {.action=&initialAction, .transition=&initialTransition};
+State startupState = {.action=&startupAction, .transition=&startupTransition};
+State normalOpState = {.action=&normalOpAction, .transition=&normalOpTransition};
+State cellBalancingState = {.action=&cellBalancingAction, .transition=&cellBalancingTransition};
+State commFaultState = {.action=&commFaultAction, .transition=&commFaultTransition};
+State tempVoltageFaultState = {.action=&tempVoltageFaultAction, .transition=&tempVoltageFaultTransition};
+State unexpectedFaultState = {.action=&unexpectedFaultAction, .transition=&unexpectedFaultTransition};
+
+std::map<FSM_STATE , State*> map = {{INITIAL, &initialState},
+                                    {STARTUP, &startupState},
+                                    {NORMALOP, &normalOpState},
+                                    {CELL_BALANCE, &cellBalancingState},
+                                    {FAULT_COMM, &commFaultState},
+                                    {FAULT_TMPVOLT, &tempVoltageFaultState},
+                                    {FAULT_UNEXPECTED, &unexpectedFaultState}};
+
 int establishConnection(){
     return 0;
 }
 
-void transition(FSM_STATE nextState) {
-    state.presentState = nextState;
-}
-
-void initial() {
+void bootCommands(){
     //Run Boot commands
 
+}
+
+void initialAction() {
     //Establish communications
     bool connectionSuccess = establishConnection();
     if (connectionSuccess) {
-        communicationsOnOff = 1;
+        communicationsOnOff = true;
     }
+}
 
+FSM_STATE initialTransition(){
     //Exit Routine
     if (communicationsOnOff) {
-        fault = 0; //Pull fault to low
-        transition(STARTUP);
+        fault = false; //Pull fault to low
+        return STARTUP;
     }
+
+    return INITIAL;
 }
 
-void *enterInitial(){
-    std::cout << "Entering initial" << std::endl;
-
-    return (void *) &enterInitial;
-}
-
-void exitInitial(){
-
-}
-
-void startup() {
+void startupAction() {
     if (communicationsOnOff){
         //Write registers to the device
-
-        //Exit Routine
-        transition(NORMALOP);
     }
 }
 
-void normalOperations() {
+FSM_STATE startupTransition() {
+    //Exit Routine
+    if(startCellBalancing){
+        return CELL_BALANCE;
+    }
+}
+
+void normalOpAction() {
     if (readyToRun){
         //Read voltages and temps
 
         //Send data via CAN
 
-        fault = 1; //Fault pin goes high until fault
-
-        //Exit Routine
-        if(startCellBalancing){
-            transition(CELL_BALANCE);
-        }
+        fault = true; //Fault pin goes high until fault
     }
 }
 
-void unexpectedFault(){
+FSM_STATE normalOpTransition() {
+    //TODO: Stub
+}
+
+void unexpectedFaultAction() {
     //Perform hardware reset on device
 
     //Send diagnostic CAN msg
 
-    fault = 0; //fault pin = low;
+    fault = false; //fault pin = low;
+}
 
-    //Exit Routine
-    //run the routine??
-    transition(INITIAL);
+FSM_STATE unexpectedFaultTransition() {
+    //TODO: Stub
+    return INITIAL;
 }
 
 bool commEstablished(){
@@ -84,24 +98,32 @@ bool commEstablished(){
     return false;
 }
 
-void commFault(){
-    while(1){
+void commFaultAction(){
+    while(true){
         if(commEstablished()){
             break;
         }
     }
     fault = 0;
-    transition(STARTUP);
 }
 
-void tempVoltageFault(){
+FSM_STATE commFaultTransition() {
+    //TODO: Stub
+    return STARTUP;
+}
+
+void tempVoltageFaultAction(){
     //Send CAN msgs and error state
-    while(1){
+    while(true){
         if(optimalValuesAchieved()){
             break;
         }
     }
-    transition(NORMALOP);
+}
+
+FSM_STATE tempVoltageFaultTransition() {
+    //TODO: Stub
+    return NORMALOP;
 }
 
 bool optimalValuesAchieved() {
@@ -112,46 +134,27 @@ void runCellBalancing() {
     //Run cell balancing
 }
 
-void cellBalancing() {
+void cellBalancingAction() {
     runCellBalancing();
+}
 
+FSM_STATE cellBalancingTransition() {
+    //TODO: Stub
     //Exit Routine
     if (endCellBalancing) {
         endCellBalancing=false;
-        transition(NORMALOP);
+        return NORMALOP;
     }
     //Check faults
 }
 
 int main() {
-    state.presentState = INITIAL;
-    state.enter = &enterInitial;
-    while (true) {
-        state.action = (void *(*)())(*state.enter)();
-
-        /*
-        switch (state.presentState) {
-            case INITIAL:
-                initial();
-                break;
-            case STARTUP:
-                startup();
-                break;
-            case NORMALOP:
-                normalOperations();
-                break;
-            case CELL_BALANCE:
-                cellBalancing();
-                break;
-            case FAULT_COMM:
-                commFault();
-                break;
-            case FAULT_TMPVOLT:
-                tempVoltageFault();
-                break;
-            case FAULT_UNEXPECTED:
-                unexpectedFault();
-                break;
-        }*/
+    State *currentState;
+    currentState = &initialState;
+    bootCommands();
+    while(true) {
+        (*currentState->action)();
+        FSM_STATE nextState = (*currentState->transition)();
+        currentState = map[nextState];
     }
 }

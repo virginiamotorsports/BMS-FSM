@@ -12,25 +12,29 @@ typedef enum{
 }FSM_STATE;
 
 typedef struct {
-    FSM_STATE presentState;
-    void *(*enter)();
-    void *(*action)();
-    void *(*exit)();
+    void (*action)();
+    FSM_STATE (*transition)();
 } State;
 
-bool optimalValuesAchieved();
+void bootCommands();
 int establishConnection();
 bool commEstablished();
 bool optimalValuesAchieved();
 void runCellBalancing();
-void transition(FSM_STATE nextState);
 
-void initial();
-void startup();
-void normalOperations();
-void cellBalancing();
-void commFault();
-void tempVoltageFault();
-void unexpectedFault();
+void initialAction();
+FSM_STATE initialTransition();
+void startupAction();
+FSM_STATE startupTransition();
+void normalOpAction();
+FSM_STATE normalOpTransition();
+void cellBalancingAction();
+FSM_STATE cellBalancingTransition();
+void commFaultAction();
+FSM_STATE commFaultTransition();
+void tempVoltageFaultAction();
+FSM_STATE tempVoltageFaultTransition();
+void unexpectedFaultAction();
+FSM_STATE unexpectedFaultTransition();
 
 #endif FSM_H
