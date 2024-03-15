@@ -7,7 +7,7 @@ bool communicationsOnOff = false;
 bool fault = true;
 bool readyToRun = false;
 bool endCellBalancing = false;
-bool startCellBalancing = false;
+bool startCellBalancing = true;
 
 
 State initialState = {.action=&initialAction, .transition=&initialTransition};
@@ -49,6 +49,8 @@ void runCellBalancing() {
 }
 
 void initialAction() {
+    std::cout << "Initial!\n";
+
     //Establish communications
     bool connectionSuccess = establishConnection();
     if (connectionSuccess) {
@@ -63,12 +65,11 @@ FSM_STATE initialTransition(){
         return STARTUP;
     }
 
-    std::cout << "Hello, World!\n";
-
     return INITIAL;
 }
 
 void startupAction() {
+    std::cout << "Startup!\n";
     if (communicationsOnOff){
         //Write registers to the device
     }
@@ -79,6 +80,7 @@ FSM_STATE startupTransition() {
     if(startCellBalancing){
         return CELL_BALANCE;
     }
+    return STARTUP;
 }
 
 void normalOpAction() {
@@ -137,6 +139,7 @@ FSM_STATE tempVoltageFaultTransition() {
 }
 
 void cellBalancingAction() {
+    std::cout << "Cell balancing!\n";
     runCellBalancing();
 }
 
@@ -148,6 +151,7 @@ FSM_STATE cellBalancingTransition() {
         return NORMALOP;
     }
     //Check faults
+    return CELL_BALANCE;
 }
 
 int main() {
