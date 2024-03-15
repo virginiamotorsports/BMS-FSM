@@ -30,9 +30,22 @@ int establishConnection(){
     return 0;
 }
 
+bool commEstablished(){
+    //Check if comms are established
+    return false;
+}
+
 void bootCommands(){
     //Run Boot commands
 
+}
+
+bool optimalValuesAchieved() {
+    return false;
+}
+
+void runCellBalancing() {
+    //Run cell balancing
 }
 
 void initialAction() {
@@ -49,6 +62,8 @@ FSM_STATE initialTransition(){
         fault = false; //Pull fault to low
         return STARTUP;
     }
+
+    std::cout << "Hello, World!\n";
 
     return INITIAL;
 }
@@ -93,11 +108,6 @@ FSM_STATE unexpectedFaultTransition() {
     return INITIAL;
 }
 
-bool commEstablished(){
-    //Check if comms are established
-    return false;
-}
-
 void commFaultAction(){
     while(true){
         if(commEstablished()){
@@ -126,14 +136,6 @@ FSM_STATE tempVoltageFaultTransition() {
     return NORMALOP;
 }
 
-bool optimalValuesAchieved() {
-    return false;
-}
-
-void runCellBalancing() {
-    //Run cell balancing
-}
-
 void cellBalancingAction() {
     runCellBalancing();
 }
@@ -153,8 +155,8 @@ int main() {
     currentState = &initialState;
     bootCommands();
     while(true) {
-        (*currentState->action)();
-        FSM_STATE nextState = (*currentState->transition)();
+        (*(currentState->action))();
+        FSM_STATE nextState = (*(currentState->transition))();
         currentState = map[nextState];
     }
 }

@@ -9,7 +9,7 @@ typedef enum{
     FAULT_COMM,
     FAULT_TMPVOLT,
     FAULT_UNEXPECTED,
-}FSM_STATE;
+} FSM_STATE;
 
 typedef struct {
     void (*action)();
