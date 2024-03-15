@@ -37,4 +37,4 @@ FSM_STATE tempVoltageFaultTransition();
 void unexpectedFaultAction();
 FSM_STATE unexpectedFaultTransition();
 
-#endif FSM_H
+#endif
