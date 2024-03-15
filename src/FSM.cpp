@@ -26,8 +26,8 @@ std::map<FSM_STATE , State*> map = {{INITIAL, &initialState},
                                     {FAULT_TMPVOLT, &tempVoltageFaultState},
                                     {FAULT_UNEXPECTED, &unexpectedFaultState}};
 
-int establishConnection(){
-    return 0;
+bool establishConnection(){
+    return true;
 }
 
 bool commEstablished(){

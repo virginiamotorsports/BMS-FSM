@@ -17,7 +17,7 @@ typedef struct {
 } State;
 
 void bootCommands();
-int establishConnection();
+bool establishConnection();
 bool commEstablished();
 bool optimalValuesAchieved();
 void runCellBalancing();
