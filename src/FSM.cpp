@@ -53,7 +53,7 @@ char response_frame_current[(1+6)]; //
 WiFiUDP udp;
 
 bool communicationsOnOff = false;
-bool fault = true;
+int fault_pin = true;
 bool readyToRun = false;
 bool endCellBalancing = false;
 bool startCellBalancing = true;
@@ -80,17 +80,47 @@ bool establishConnection(){
     //status = WiFi.beginAP(ssid, pass);
     //WiFi.config(IPAddress(192,168,244,1));
 
+    Serial.begin(9600);
+    Serial1.begin(BAUDRATE, SERIAL_8N1);
+    Serial1.setTimeout(1000);
+    CAN.begin(CanBitRate::BR_1000k);
+
     return true;
 }
 
 bool commEstablished(){
     //Check if comms are established
+    //Maybe send / receive some data to check if comms are established
+    Serial.print("Hello this the the BMS Code\r\n");
     return false;
 }
 
 void bootCommands(){
     //Run Boot commands
+    pinMode(FAULT_PIN, OUTPUT);
+    pinMode(NFAULT_PIN, INPUT);
+    digitalWrite(FAULT_PIN, LOW);
 
+    Wake79616();
+    delayMicroseconds((10000 + 520) * TOTALBOARDS); // 2.2ms from shutdown/POR to active mode + 520us till device can send wake tone, PER DEVICE
+
+    AutoAddress();
+    // AutoAddress2();
+    Serial.println("Autoaddress Completed");
+
+    set_registers();
+
+    //clear the write buffer
+    memset(UDP_Buffer, 0, sizeof(UDP_Buffer));
+    memset(response_frame_current, 0, sizeof(response_frame_current));
+    memset(temp_response_frame, 0, sizeof(temp_response_frame));
+    memset(voltage_response_frame, 0, sizeof(voltage_response_frame));
+    memset(message_data, 0, sizeof(message_data[0][0]) * message_data_width * 8);
+    // memset(modules, 0, sizeof(modules) * (16 * 2 + 8 * 2 + 1 + 1));
+
+    // memset(cell_voltages, 0, sizeof(cell_voltages));
+    udp.begin(IPAddress(192,168,244,1), 10000);
+    udp.setTimeout(10);
 }
 
 bool optimalValuesAchieved() {
@@ -104,17 +134,19 @@ void runCellBalancing() {
 void initialAction() {
     std::cout << "Initial!\n";
 
+
     //Establish communications
     bool connectionSuccess = establishConnection();
     if (connectionSuccess) {
         communicationsOnOff = true;
+        fault_pin = 1;
     }
 }
 
 FSM_STATE initialTransition(){
     //Exit Routine
     if (communicationsOnOff) {
-        fault = false; //Pull fault to low
+        fault_pin = 0; //Pull fault_pin to low
         return STARTUP;
     }
 
@@ -142,7 +174,7 @@ void normalOpAction() {
 
         //Send data via CAN
 
-        fault = true; //Fault pin goes high until fault
+        fault_pin = 1; //Fault pin goes high until fault_pin
     }
 }
 
@@ -155,25 +187,23 @@ void unexpectedFaultAction() {
 
     //Send diagnostic CAN msg
 
-    fault = false; //fault pin = low;
+    fault_pin = 0; //fault_pin pin = low;
 }
 
 FSM_STATE unexpectedFaultTransition() {
-    //TODO: Stub
     return INITIAL;
 }
 
 void commFaultAction(){
-    while(true){
-        if(commEstablished()){
-            break;
-        }
-    }
-    fault = 0;
+    Serial.println("Communications Fault");
+    restart_chips();
+    fault_pin = 0;
 }
 
 FSM_STATE commFaultTransition() {
-    //TODO: Stub
+    if(comm_fault){
+        return FAULT_COMM;
+    }
     return STARTUP;
 }
 
