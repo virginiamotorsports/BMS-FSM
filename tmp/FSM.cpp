@@ -10,6 +10,9 @@
 #include "BMSFSM.hpp"
 
 //TESTING
+#include "Arduino_LED_Matrix.h"
+
+ArduinoLEDMatrix matrix;
 //TESTING
 
 #define FAULT_PIN D3
@@ -225,6 +228,12 @@ FSM_STATE tempVoltageFaultTransition() {
 }
 
 void cellBalancingAction() {
+    const uint32_t happy[] = {
+        0x19819,
+        0x80000001,
+        0x81f8000
+    };
+    matrix.loadFrame(happy);
     std::cout << "Cell balancing!\n";
     runCellBalancing();
 }
