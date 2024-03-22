@@ -67,7 +67,7 @@ State commFaultState = {.action=&commFaultAction, .transition=&commFaultTransiti
 State tempVoltageFaultState = {.action=&tempVoltageFaultAction, .transition=&tempVoltageFaultTransition};
 State unexpectedFaultState = {.action=&unexpectedFaultAction, .transition=&unexpectedFaultTransition};
 
-std::map<FSM_STATE , State*> map = {{INITIAL, &initialState},
+std::map<FSM_STATE , State*> state_map = {{INITIAL, &initialState},
                                     {STARTUP, &startupState},
                                     {NORMALOP, &normalOpState},
                                     {CELL_BALANCE, &cellBalancingState},
@@ -244,6 +244,6 @@ int main() {
     while(true) {
         (*(currentState->action))();
         FSM_STATE nextState = (*(currentState->transition))();
-        currentState = map[nextState];
+        currentState = state_map[nextState];
     }
 }
