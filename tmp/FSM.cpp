@@ -10,9 +10,6 @@
 #include "BMSFSM.hpp"
 
 //TESTING
-#include "Arduino_LED_Matrix.h"
-
-ArduinoLEDMatrix matrix;
 //TESTING
 
 #define FAULT_PIN D3
@@ -31,7 +28,7 @@ char ssid[] = SECRET_SSID;        // your network SSID (name)
 char pass[] = SECRET_PASS;        // your network password (use for WPA, or use as key for WEP)
 int keyIndex = 0;                 // your network key index number (needed only for WEP)
 
-int led =  LED_BUILTIN;
+int led = LED_BUILTIN;
 int status = WL_IDLE_STATUS;
 
 const float_t a1 = 0.003354016;
@@ -55,7 +52,7 @@ int32_t signed_val = 0;
 long double sr_val = 0;
 char voltage_response_frame[(16 * 2 + 6) * TOTALBOARDS];    // hold all 16 vcell*_hi/lo values
 char temp_response_frame[(8 * 2 + 6) * TOTALBOARDS];    // hold all 16 vcell*_hi/lo values
-char response_frame_current[(1+6)]; //
+char response_frame_current[(1 + 6)]; //
 WiFiUDP udp;
 
 bool communicationsOnOff = false;
@@ -65,23 +62,23 @@ bool endCellBalancing = false;
 bool startCellBalancing = true;
 
 
-State initialState = {.action=&initialAction, .transition=&initialTransition};
-State startupState = {.action=&startupAction, .transition=&startupTransition};
-State normalOpState = {.action=&normalOpAction, .transition=&normalOpTransition};
-State cellBalancingState = {.action=&cellBalancingAction, .transition=&cellBalancingTransition};
-State commFaultState = {.action=&commFaultAction, .transition=&commFaultTransition};
-State tempVoltageFaultState = {.action=&tempVoltageFaultAction, .transition=&tempVoltageFaultTransition};
-State unexpectedFaultState = {.action=&unexpectedFaultAction, .transition=&unexpectedFaultTransition};
+State initialState = { .action = &initialAction, .transition = &initialTransition };
+State startupState = { .action = &startupAction, .transition = &startupTransition };
+State normalOpState = { .action = &normalOpAction, .transition = &normalOpTransition };
+State cellBalancingState = { .action = &cellBalancingAction, .transition = &cellBalancingTransition };
+State commFaultState = { .action = &commFaultAction, .transition = &commFaultTransition };
+State tempVoltageFaultState = { .action = &tempVoltageFaultAction, .transition = &tempVoltageFaultTransition };
+State unexpectedFaultState = { .action = &unexpectedFaultAction, .transition = &unexpectedFaultTransition };
 
-std::map<FSM_STATE , State*> state_map = {{INITIAL, &initialState},
+std::map<FSM_STATE, State*> state_map = { {INITIAL, &initialState},
                                     {STARTUP, &startupState},
                                     {NORMALOP, &normalOpState},
                                     {CELL_BALANCE, &cellBalancingState},
                                     {FAULT_COMM, &commFaultState},
                                     {FAULT_TMPVOLT, &tempVoltageFaultState},
-                                    {FAULT_UNEXPECTED, &unexpectedFaultState}};
+                                    {FAULT_UNEXPECTED, &unexpectedFaultState} };
 
-bool establishConnection(){
+bool establishConnection() {
     //Do we need wifi?
     //status = WiFi.beginAP(ssid, pass);
     //WiFi.config(IPAddress(192,168,244,1));
@@ -94,14 +91,14 @@ bool establishConnection(){
     return true;
 }
 
-bool commEstablished(){
+bool commEstablished() {
     //Check if comms are established
     //Maybe send / receive some data to check if comms are established
     Serial.print("Hello this the the BMS Code\r\n");
     return false;
 }
 
-void bootCommands(){
+void bootCommands() {
     //Run Boot commands
     pinMode(FAULT_PIN, OUTPUT);
     pinMode(NFAULT_PIN, INPUT);
@@ -125,7 +122,7 @@ void bootCommands(){
     // memset(modules, 0, sizeof(modules) * (16 * 2 + 8 * 2 + 1 + 1));
 
     // memset(cell_voltages, 0, sizeof(cell_voltages));
-    udp.begin(IPAddress(192,168,244,1), 10000);
+    udp.begin(IPAddress(192, 168, 244, 1), 10000);
     udp.setTimeout(10);
 }
 
@@ -149,7 +146,7 @@ void initialAction() {
     }
 }
 
-FSM_STATE initialTransition(){
+FSM_STATE initialTransition() {
     //Exit Routine
     if (communicationsOnOff) {
         fault_pin = 0; //Pull fault_pin to low
@@ -161,21 +158,21 @@ FSM_STATE initialTransition(){
 
 void startupAction() {
     std::cout << "Startup!\n";
-    if (communicationsOnOff){
+    if (communicationsOnOff) {
         //Write registers to the device
     }
 }
 
 FSM_STATE startupTransition() {
     //Exit Routine
-    if(startCellBalancing){
+    if (startCellBalancing) {
         return CELL_BALANCE;
     }
     return STARTUP;
 }
 
 void normalOpAction() {
-    if (readyToRun){
+    if (readyToRun) {
         //Read voltages and temps
 
         //Send data via CAN
@@ -200,23 +197,23 @@ FSM_STATE unexpectedFaultTransition() {
     return INITIAL;
 }
 
-void commFaultAction(){
+void commFaultAction() {
     Serial.println("Communications Fault");
     restart_chips();
     fault_pin = 0;
 }
 
 FSM_STATE commFaultTransition() {
-    if(comm_fault){
+    if (comm_fault) {
         return FAULT_COMM;
     }
     return STARTUP;
 }
 
-void tempVoltageFaultAction(){
+void tempVoltageFaultAction() {
     //Send CAN msgs and error state
-    while(true){
-        if(optimalValuesAchieved()){
+    while (true) {
+        if (optimalValuesAchieved()) {
             break;
         }
     }
@@ -228,12 +225,6 @@ FSM_STATE tempVoltageFaultTransition() {
 }
 
 void cellBalancingAction() {
-    const uint32_t happy[] = {
-        0x19819,
-        0x80000001,
-        0x81f8000
-    };
-    matrix.loadFrame(happy);
     std::cout << "Cell balancing!\n";
     runCellBalancing();
 }
@@ -242,7 +233,7 @@ FSM_STATE cellBalancingTransition() {
     //TODO: Stub
     //Exit Routine
     if (endCellBalancing) {
-        endCellBalancing=false;
+        endCellBalancing = false;
         return NORMALOP;
     }
     //Check faults
@@ -250,10 +241,10 @@ FSM_STATE cellBalancingTransition() {
 }
 
 int main() {
-    State *currentState;
+    State* currentState;
     currentState = &initialState;
     bootCommands();
-    while(true) {
+    while (true) {
         (*(currentState->action))();
         FSM_STATE nextState = (*(currentState->transition))();
         currentState = state_map[nextState];
