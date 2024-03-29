@@ -1,4 +1,5 @@
 #include "FSM.h"
+#include <Arduino.h>
 #include <Arduino_CAN.h>
 #include <WiFiS3.h>
 #include <math.h>
@@ -10,12 +11,6 @@
 #include "BMSFSM.hpp"
 #include "bq79616.hpp"
 #include "can_helpers.hpp"
-
-// TESTING
-#include "Arduino_LED_Matrix.h"
-
-ArduinoLEDMatrix matrix;
-// TESTING
 
 #define FAULT_PIN D3
 #define NFAULT_PIN D2
@@ -34,8 +29,7 @@ IPAddress send_to_address(192, 168, 244, 2);
 
 ///////please enter your sensitive data in the Secret tab/arduino_secrets.h
 char ssid[] = SECRET_SSID;  // your network SSID (name)
-char pass[] =
-SECRET_PASS;   // your network password (use for WPA, or use as key for WEP)
+char pass[] = SECRET_PASS;   // your network password (use for WPA, or use as key for WEP)
 int keyIndex = 0;  // your network key index number (needed only for WEP)
 
 int led = LED_BUILTIN;
