@@ -1,5 +1,4 @@
 #include "FSM.h"
-
 #include <Arduino_CAN.h>
 #include <WiFiS3.h>
 #include <math.h>
@@ -404,7 +403,15 @@ FSM_STATE normalOpTransition() {
         Serial.println("Fault Detected");
         // delay(5000);
         // HERE: need to switch to appropriate FAULT STATE by returning.
-        return FAULT_UNEXPECTED;
+        if (comm_fault) {
+            return FAULT_COMM;
+        }
+        else if (OVUV_fault || OTUT_fault) {
+            return FAULT_TMPVOLT;
+        }
+        else if (bms_fault || n_fault) {
+            return FAULT_UNEXPECTED;
+        }
     }
     else {
         digitalWrite(FAULT_PIN, HIGH);
@@ -462,7 +469,10 @@ FSM_STATE cellBalancingTransition() {
     return CELL_BALANCE;
 }
 
-int main() {
+void setup() {
+}
+
+void loop() {
     State* currentState;
     currentState = &initialState;
     bootCommands();
