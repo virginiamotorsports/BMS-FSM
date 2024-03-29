@@ -271,7 +271,6 @@ FSM_STATE initialTransition() {
     if (communicationsOnOff) {
         return STARTUP;
     }
-
     return INITIAL;
 }
 
@@ -469,7 +468,7 @@ void setup() {
 void loop() {
     State* currentState;
     currentState = &initialState;
-    bootCommands();
+    //bootCommands();
     while (true) {
         (*(currentState->action))();
         FSM_STATE nextState = (*(currentState->transition))();
