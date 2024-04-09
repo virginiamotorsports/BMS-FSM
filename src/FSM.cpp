@@ -1,6 +1,7 @@
 #include "FSM.h"
 #include <Arduino.h>
 #include <Arduino_CAN.h>
+#include <SoftwareSerial.h>
 #include <WiFiS3.h>
 #include <math.h>
 #include <stdio.h>
@@ -462,13 +463,6 @@ FSM_STATE cellBalancingTransition() {
     return CELL_BALANCE;
 }
 
-int main() {
-    State* currentState;
-    currentState = &initialState;
-    //bootCommands();
-    while (true) {
-        (*(currentState->action))();
-        FSM_STATE nextState = (*(currentState->transition))();
-        currentState = state_map[nextState];
-    }
-}
+// int main() {
+    
+// }
