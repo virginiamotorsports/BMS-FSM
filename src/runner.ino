@@ -1,10 +1,8 @@
 #include <Arduino.h>
 #include <Arduino_CAN.h>
+#include "arduino_helpers.hpp"
 #include "FSM.h"
 #include <map>
-
-#define FAULT_PIN D3
-#define NFAULT_PIN D2
 
 extern State initialState;
 extern std::map<FSM_STATE, State*> state_map;
@@ -12,12 +10,15 @@ extern std::map<FSM_STATE, State*> state_map;
 State* currentState = &initialState;
 
 void setup() {
-    Serial.begin(9600);
-    Serial1.setTimeout(1000);
-    Serial.setTimeout(1000);
+    
+    establishConnection();
 
     pinMode(FAULT_PIN, OUTPUT);
     pinMode(NFAULT_PIN, INPUT);
+    pinMode(IMD_STATUS, INPUT_PULLDOWN);
+    pinMode(POS_AIR_STATUS, INPUT_PULLDOWN);
+    pinMode(NEG_AIR_STATUS, INPUT_PULLDOWN);
+
     digitalWrite(FAULT_PIN, LOW);
 
     // bootCommands();
