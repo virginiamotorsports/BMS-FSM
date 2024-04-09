@@ -33,10 +33,10 @@
 #include "B0_reg.h"
 
 // User defines
-#define TOTALBOARDS 1       //boards in stack
+#define TOTALBOARDS 2      //boards in stack
 #define CELL_TEMP_NUM 8
 #define ACTIVECHANNELS 16   //channels to activate (incomplete, does not work right now)
-#define BRIDGEDEVICE 0   //
+#define BRIDGEDEVICE 1   //
 #define MAXcharS (16*2)     //maximum number of chars to be read from the devices (for array creation)
 #define BAUDRATE 1000000    //device + uC baudrate
 
@@ -47,11 +47,13 @@
 #define FRMWRT_ALL_R	0x40    //broadcast READ
 #define FRMWRT_ALL_W	0x50    //broadcast WRITE
 #define FRMWRT_REV_ALL_W 0xE0   //broadcast WRITE reverse direction
-
+                  
 // namespace bq{
 // Function Prototypes
 void Wake79616();
+void StA79616();
 void Wake79606();
+void WakeStack();
 void HWRST79616();
 void CommClear(void);
 void CommSleepToActive(void);
@@ -88,8 +90,8 @@ uint16_t volt2char(float volt);
 
 
 struct BMS_status{
-    uint16_t cell_voltages[16];
-    uint16_t cell_temps[8];
+    uint8_t cell_voltages[16];
+    uint8_t cell_temps[8];
     uint8_t status;
     bool fault;
 };
@@ -97,3 +99,4 @@ struct BMS_status{
 // }
 #endif /* BQ79606_H_ */
 //EOF
+

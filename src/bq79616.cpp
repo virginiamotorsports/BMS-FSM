@@ -64,6 +64,10 @@ void Wake79616(void) {
     // sciSetBaudrate(sciREG, BAUDRATE);
 }
 
+void WakeStack(void){
+    WriteReg(0, CONTROL1, 0x20, 1, FRMWRT_ALL_W); // enable wake up stack
+}
+
 void SD79616(void) {
 
     // delayMicroseconds(9000); 
@@ -120,74 +124,72 @@ void HWRST79616(void) {
 
 
 void restart_chips(void){
+//   HWRST79616();
+//   delayMicroseconds((10000 + 520) * TOTALBOARDS); // 2.2ms from shutdown/POR to active mode + 520us till device can send wake tone, PER DEVICE
 
-    // HWRST79616();
-    // delayMicroseconds((10000 + 520) * TOTALBOARDS); // 2.2ms from shutdown/POR to active mode + 520us till device can send wake tone, PER DEVICE
     Wake79616();
     delayMicroseconds((10000 + 520) * TOTALBOARDS); // 2.2ms from shutdown/POR to active mode + 520us till device can send wake tone, PER DEVICE
     char zeros[7];
-    ResetAllFaults(0, FRMWRT_ALL_W);
     memset(zeros, 0, sizeof(zeros));
     int result = ReadReg(0, FAULT_SUMMARY, zeros, 1, 0, FRMWRT_ALL_R); // try to read a register to trigger looping this method
-    
     if(result == -1)
         return;
-
+    else
+        comm_fault = false;
     delay(20);
-
     AutoAddress();
+    // AutoAddress2();
+    Serial.println("Autoaddress Completed");
 
     set_registers();
-
-
 }
 
 void set_registers(void){
 
-    WriteReg(0, FAULT_MSK2, 0x40, 1, FRMWRT_ALL_W); //OPTIONAL: MASK CUST_CRC SO CONFIG CHANGES DON'T FLAG A FAULT
-    WriteReg(0, FAULT_MSK1, 0xFFFE, 2, FRMWRT_ALL_W); // INITIAL B0 SILICON: MASK FAULT_PWR SO TSREF_UV doesn't flag a fault
-    ResetAllFaults(0, FRMWRT_ALL_W);
+  WriteReg(0, FAULT_MSK2, 0x40, 1, FRMWRT_STK_W); //OPTIONAL: MASK CUST_CRC SO CONFIG CHANGES DON'T FLAG A FAULT
+  WriteReg(0, FAULT_MSK1, 0xFFFE, 2, FRMWRT_STK_W); // INITIAL B0 SILICON: MASK FAULT_PWR SO TSREF_UV doesn't flag a fault
+  ResetAllFaults(0, FRMWRT_STK_W);
 
-    // ENABLE TSREF
-    WriteReg(0, CONTROL2, 0x01, 1, FRMWRT_ALL_W); // enable TSREF
+  // ENABLE TSREF
+  WriteReg(0, CONTROL2, 0x01, 1, FRMWRT_STK_W); // enable TSREF
 
-    // CONFIGURE GPIOS as temp inputs
-    WriteReg(0, GPIO_CONF1, 0x08, 1, FRMWRT_ALL_W); // GPIO1 and 2 as temp inputs
-    //   WriteReg(0, GPIO_CONF2, 0x09, 1, FRMWRT_ALL_W); // GPIO3 and 4 as temp inputs
-    //   WriteReg(0, GPIO_CONF3, 0x09, 1, FRMWRT_ALL_W); // GPIO5 and 6 as temp inputs
-    //   WriteReg(0, GPIO_CONF4, 0x09, 1, FRMWRT_ALL_W); // GPIO7 and 8 as temp inputs
+  // CONFIGURE GPIOS as temp inputs
+  WriteReg(0, GPIO_CONF1, 0x09, 1, FRMWRT_STK_W); // GPIO1 and 2 as temp inputs
+  WriteReg(0, GPIO_CONF2, 0x09, 1, FRMWRT_STK_W); // GPIO3 and 4 as temp inputs
+  WriteReg(0, GPIO_CONF3, 0x09, 1, FRMWRT_STK_W); // GPIO5 and 6 as temp inputs
+  WriteReg(0, GPIO_CONF4, 0x09, 1, FRMWRT_STK_W); // GPIO7 and 8 as temp inputs
 
-    WriteReg(0, OTUT_THRESH, 0xDA, 1, FRMWRT_ALL_W); // Sets OV thresh to 80% and UT thresh to 20% to meet rules
-
-
-    WriteReg(0, OV_THRESH, 0x25, 1, FRMWRT_ALL_W); // Sets Over voltage protection to 4.25V
-    WriteReg(0, UV_THRESH, 0x10, 1, FRMWRT_ALL_W); // Sets Under voltage protection to 3.0V
+  WriteReg(0, OTUT_THRESH, 0xDA, 1, FRMWRT_STK_W); // Sets OV thresh to 80% and UT thresh to 20% to meet rules
 
 
-    WriteReg(0, OVUV_CTRL, 0x05, 1, FRMWRT_ALL_W); // Sets voltage controls
-    WriteReg(0, OTUT_CTRL, 0x05, 1, FRMWRT_ALL_W); // Sets temperature controls
-
-    WriteReg(0, BAL_CTRL1, 0x02, 1, FRMWRT_ALL_W); // Sets balance length to 10s
-    WriteReg(0, BAL_CTRL2, 0x31, 1, FRMWRT_ALL_W); // Sets enables auto balancing
+  WriteReg(0, OV_THRESH, 0x25, 1, FRMWRT_STK_W); // Sets Over voltage protection to 4.25V
+  WriteReg(0, UV_THRESH, 0x24, 1, FRMWRT_STK_W); // Sets Under voltage protection to 3.0V
 
 
-    // CONFIGURE THE MAIN ADC
-    WriteReg(0, ACTIVE_CELL, ACTIVECHANNELS - 6, 1, FRMWRT_ALL_W); // set all cells to active
-    WriteReg(0, ADC_CONF1, 0x04, 1, FRMWRT_ALL_W);                 // LPF_ON - LPF = 9ms
-    WriteReg(0, COMM_TIMEOUT_CONF, 0x03, 1, FRMWRT_ALL_W);                 // puts the device to sleep when the AMS shuts off after 10s
+  WriteReg(0, OVUV_CTRL, 0x05, 1, FRMWRT_STK_W); // Sets voltage controls
+  WriteReg(0, OTUT_CTRL, 0x05, 1, FRMWRT_STK_W); // Sets temperature controls
+
+  WriteReg(0, BAL_CTRL1, 0x01, 1, FRMWRT_STK_W); // Sets balance length to 10s
+  WriteReg(0, BAL_CTRL2, 0x31, 1, FRMWRT_STK_W); // Sets enables auto balancing
 
 
-    // CLEAR FAULTS AND UPDATE CUST_CRC
-    ResetAllFaults(0, FRMWRT_ALL_W); // CLEAR ALL FAULTS
-    // delay(100);                    // visual separation for logic analyzer
+  // CONFIGURE THE MAIN ADC
+  WriteReg(0, ACTIVE_CELL, ACTIVECHANNELS - 6, 1, FRMWRT_STK_W); // set all cells to active
+  WriteReg(0, ADC_CONF1, 0x04, 1, FRMWRT_STK_W);                 // LPF_ON - LPF = 9ms
+  WriteReg(0, COMM_TIMEOUT_CONF, 0x3C, 1, FRMWRT_STK_W);                 // puts the device to sleep when the AMS shuts off after 10s
+  
 
-    // START THE MAIN ADC
-    WriteReg(0, ADC_CTRL1, 0x0E, 1, FRMWRT_ALL_W); // continuous run and MAIN_GO and LPF_VCELL_EN and CS_DR = 1ms
-    WriteReg(0, ADC_CTRL2, 0x00, 1, FRMWRT_ALL_W); // continuous run and MAIN_GO and LPF_VCELL_EN and CS_DR = 1ms
-    WriteReg(0, ADC_CTRL3, 0x06, 1, FRMWRT_ALL_W); // continuous run and MAIN_GO and LPF_VCELL_EN and CS_DR = 1ms
+  // CLEAR FAULTS AND UPDATE CUST_CRC
+  ResetAllFaults(0, FRMWRT_STK_W); // CLEAR ALL FAULTS
+  // delay(100);                    // visual separation for logic analyzer
 
-    WriteReg(0, FAULT_MSK1, 0x00, 1, FRMWRT_ALL_W); //OPTIONAL: MASK CUST_CRC SO CONFIG CHANGES DON'T FLAG A FAULT
-    WriteReg(0, FAULT_MSK2, 0x60, 1, FRMWRT_ALL_W); // INITIAL B0 SILICON: MASK FAULT_PWR SO TSREF_UV doesn't flag a fault
+  // START THE MAIN ADC
+  WriteReg(0, ADC_CTRL1, 0x0E, 1, FRMWRT_STK_W); // continuous run and MAIN_GO and LPF_VCELL_EN and CS_DR = 1ms
+  WriteReg(0, ADC_CTRL2, 0x00, 1, FRMWRT_STK_W); // continuous run and MAIN_GO and LPF_VCELL_EN and CS_DR = 1ms
+  WriteReg(0, ADC_CTRL3, 0x06, 1, FRMWRT_STK_W); // continuous run and MAIN_GO and LPF_VCELL_EN and CS_DR = 1ms
+
+  WriteReg(0, FAULT_MSK1, 0x00, 1, FRMWRT_STK_W); //OPTIONAL: MASK CUST_CRC SO CONFIG CHANGES DON'T FLAG A FAULT
+  WriteReg(0, FAULT_MSK2, 0x60, 1, FRMWRT_STK_W); // INITIAL B0 SILICON: MASK FAULT_PWR SO TSREF_UV doesn't flag a fault
 
 }
 
@@ -352,8 +354,18 @@ void AutoAddress2()
 }
 void AutoAddress()
 {
+
+    WriteReg(0, OTP_ECC_DATAIN1, 0X00, 1, FRMWRT_STK_W);
+    WriteReg(0, OTP_ECC_DATAIN2, 0X00, 1, FRMWRT_STK_W);
+    WriteReg(0, OTP_ECC_DATAIN3, 0X00, 1, FRMWRT_STK_W);
+    WriteReg(0, OTP_ECC_DATAIN4, 0X00, 1, FRMWRT_STK_W);
+    WriteReg(0, OTP_ECC_DATAIN5, 0X00, 1, FRMWRT_STK_W);
+    WriteReg(0, OTP_ECC_DATAIN6, 0X00, 1, FRMWRT_STK_W);
+    WriteReg(0, OTP_ECC_DATAIN7, 0X00, 1, FRMWRT_STK_W);
+    WriteReg(0, OTP_ECC_DATAIN8, 0X00, 1, FRMWRT_STK_W);
+
     //DUMMY WRITE TO SNCHRONIZE ALL DAISY CHAIN DEVICES DLL (IF A DEVICE RESET OCCURED PRIOR TO THIS)
-    WriteReg(0, OTP_ECC_TEST, 0X00, 1, FRMWRT_ALL_W);
+    // WriteReg(0, OTP_ECC_TEST, 0X00, 1, FRMWRT_ALL_W);
 
     //ENABLE AUTO ADDRESSING MODE
     WriteReg(0, CONTROL1, 0X01, 1, FRMWRT_ALL_W);
@@ -376,14 +388,22 @@ void AutoAddress()
         WriteReg(TOTALBOARDS-1, COMM_CTRL, 0x03, 1, FRMWRT_SGL_W);
     }
 
+    ReadReg(0, OTP_ECC_DATAIN1, response_frame2, 1, 0, FRMWRT_STK_R);
+    ReadReg(0, OTP_ECC_DATAIN2, response_frame2, 1, 0, FRMWRT_STK_R);
+    ReadReg(0, OTP_ECC_DATAIN3, response_frame2, 1, 0, FRMWRT_STK_R);
+    ReadReg(0, OTP_ECC_DATAIN4, response_frame2, 1, 0, FRMWRT_STK_R);
+    ReadReg(0, OTP_ECC_DATAIN5, response_frame2, 1, 0, FRMWRT_STK_R);
+    ReadReg(0, OTP_ECC_DATAIN6, response_frame2, 1, 0, FRMWRT_STK_R);
+    ReadReg(0, OTP_ECC_DATAIN7, response_frame2, 1, 0, FRMWRT_STK_R);
+    ReadReg(0, OTP_ECC_DATAIN8, response_frame2, 1, 0, FRMWRT_STK_R);
     //SYNCRHONIZE THE DLL WITH A THROW-AWAY READ
-    ReadReg(0, OTP_ECC_TEST, response_frame2, 1, 0, FRMWRT_ALL_R);
+    // ReadReg(0, OTP_ECC_TEST, response_frame2, 1, 0, FRMWRT_ALL_R);
 
     //OPTIONAL: read back all device addresses
     for(currentBoard=0; currentBoard<TOTALBOARDS; currentBoard++)
     {
         ReadReg(currentBoard, DIR0_ADDR, response_frame2, 1, 0, FRMWRT_SGL_R);
-        //Serial.println("board %d\n",response_frame2[4]);
+        // printConsole("board %c\n", response_frame2[4]);
     }
 
     //RESET ANY COMM FAULT CONDITIONS FROM STARTUP
@@ -652,15 +672,11 @@ int ReadReg(char bID, uint16_t wAddr, char * pData, char bLen, uint32_t dwTimeOu
 
     if(millis() - lastReceiveTime >= 900)
     {
-        Serial.print("Com Timeout, took: ");
-        Serial.print(millis() - lastReceiveTime);
-        Serial.println("ms");
         comm_fault = true;
         return -1;
     }
     else{
         comm_fault = false;
-        WriteReg(0, FAULT_RST2, 0x1F, 1, FRMWRT_ALL_W); // reset fault
     }
 
     // CHECK IF CRC IS CORRECT
@@ -689,9 +705,7 @@ int ReadReg(char bID, uint16_t wAddr, char * pData, char bLen, uint32_t dwTimeOu
     }
 
     if(bad){
-        Serial.println("BAD CRC Fault");
-        comm_fault = true;
-        return -1;
+        restart_chips();
     }
 
     return bRes;

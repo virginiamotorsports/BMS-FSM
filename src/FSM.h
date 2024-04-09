@@ -1,6 +1,18 @@
 #ifndef FSM_H
 #define FSM_H
 
+#include "bq79616.hpp"
+// #include "can_helpers.hpp"
+
+#include <Arduino.h>
+#include <Arduino_CAN.h>
+#include <math.h>
+#include <stdio.h>
+
+#include <map>
+
+
+
 typedef enum{
     INITIAL,
     STARTUP,
