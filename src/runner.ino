@@ -19,10 +19,11 @@ void setup() {
     digitalWrite(FAULT_PIN, LOW);
 
     Serial.println("On loop");
+
+    // bootCommands();
 }
 
 void loop() {
-    bootCommands();
     Serial.println("On main");
     (*(currentState->action))();
     FSM_STATE nextState = (*(currentState->transition))();

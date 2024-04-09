@@ -233,8 +233,8 @@ void bootCommands() {
     memset(message_data, 0,
            sizeof(message_data[0][0]) * message_data_width * 8);
 
-    udp.begin(IPAddress(192, 168, 244, 1), 10000);
-    udp.setTimeout(10);
+    // udp.begin(IPAddress(192, 168, 244, 1), 10000);
+    // udp.setTimeout(10);
     startup_done = true;
 }
 
@@ -256,6 +256,7 @@ void runCellBalancing() {
 }
 
 void initialAction() {
+    Serial.println(comm_fault);
     std::cout << "Initial!\n";
 
     // Establish communications
@@ -421,6 +422,8 @@ void unexpectedFaultAction() {
 FSM_STATE unexpectedFaultTransition() { return INITIAL; }
 
 void commFaultAction() {
+    Serial.println(comm_fault);
+    Serial.println("Comm fault action");
     Serial.println("Communications Fault");
     restart_chips();
     fault_pin = 0;
