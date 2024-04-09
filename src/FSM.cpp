@@ -462,10 +462,7 @@ FSM_STATE cellBalancingTransition() {
     return CELL_BALANCE;
 }
 
-void setup() {
-}
-
-void loop() {
+int main() {
     State* currentState;
     currentState = &initialState;
     //bootCommands();
