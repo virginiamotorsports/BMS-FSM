@@ -93,6 +93,7 @@ struct BMS_status{
     uint8_t cell_voltages[16];
     uint8_t cell_temps[8];
     uint8_t status;
+    uint16_t die_temp;
     bool fault;
 };
 

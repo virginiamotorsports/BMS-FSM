@@ -20,8 +20,6 @@ void setup() {
     pinMode(NFAULT_PIN, INPUT);
     digitalWrite(FAULT_PIN, LOW);
 
-    Serial.println("On loop");
-
     // bootCommands();
 }
 

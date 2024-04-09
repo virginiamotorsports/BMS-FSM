@@ -129,9 +129,11 @@ void restart_chips(void){
 
     Wake79616();
     delayMicroseconds((10000 + 520) * TOTALBOARDS); // 2.2ms from shutdown/POR to active mode + 520us till device can send wake tone, PER DEVICE
+
+    
     char zeros[7];
     memset(zeros, 0, sizeof(zeros));
-    int result = ReadReg(0, FAULT_SUMMARY, zeros, 1, 0, FRMWRT_ALL_R); // try to read a register to trigger looping this method
+    int result = ReadReg(0, FAULT_SUMMARY, zeros, 1, 0, FRMWRT_SGL_R); // try to read a register to trigger looping this method
     if(result == -1)
         return;
     else
