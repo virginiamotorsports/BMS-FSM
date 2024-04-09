@@ -139,7 +139,7 @@ void restart_chips(void){
     else
         comm_fault = false;
     delay(20);
-    AutoAddress();
+    // AutoAddress();
     // AutoAddress2();
     Serial.println("Autoaddress Completed");
 
@@ -195,183 +195,24 @@ void set_registers(void){
 
 }
 
-//**********************
-//AUTO ADDRESS SEQUENCE
-//**********************
-void AutoAddress2()
-{
-    topFoundBoard = 0;
-    baseCommunicating = 0;
-    otpPass = 0;
-
-    //GET BASE DEVICE COMMUNICATIONS WORKING
-    while(baseCommunicating == 0)
-    {
-        //SEND NORMAL WAKE PING
-        Wake79616();
-        delayMicroseconds( (10000+520)*TOTALBOARDS ); //2.2ms from shutdown/POR to active mode + 520us till device can send wake tone, PER DEVICE
-
-        //DISABLE COMM LINES
-        WriteReg(0, DEBUG_CTRL_UNLOCK, 0xA50500, 3, FRMWRT_ALL_W); //unlock comm ctrl registers, disable all comms, enable USER_DAISY_EN
-        delay(5); //CHANGE - wait for COMM to disable
-
-        //CHECK IF BASE DEVICE IS READING BACK
-        memset(response_frame2,0,sizeof(response_frame2));
-        ReadReg(0, DEBUG_CTRL_UNLOCK, response_frame2, 1, 0, FRMWRT_SGL_R);
-
-        //IF WE GET THE CORRECT DATA BACK, THEN THE BASE DEVICE IS COMMUNICATING
-        if(response_frame2[4] == 0xA5)
-        {
-            //SET THE LOOP VARIABLE FOR EXITING THIS LOOP
-            baseCommunicating = 1;
-
-            //RETURN THE BASE DEVICE TO ITS DEFAULT COMM REGISTERS STATUS
-            WriteReg(0, DEBUG_CTRL_UNLOCK, 0x00040F, 3, FRMWRT_SGL_W); //set DEBUG_CTRL_UNLOCK and DEBUG_COMM_CTRL1/2 back to defaults
-
-            printConsole("Base Communicating, moving on\n\r");
-        }
-        //OTHERWISE WE MUST KEEP LOOPING
-        else
-        {
-            baseCommunicating = 0;
-        }
-    }
-
-    //WHILE WE HAVEN'T FULLLY ADDRESSED THE ENTIRE STACK
-    while(topFoundBoard < TOTALBOARDS-1)
-    {
-        //SEND WAKE TONE FROM THE HIGHEST DEVICE THAT RESPONDED
-        WriteReg(topFoundBoard, CONTROL1, 0x20, 1, FRMWRT_SGL_W);
-        //WAIT THE REQUIRED TIME FOR WAKE TRANSITION PER REMAINING BOARD
-        delayMicroseconds( (2200+520)*TOTALBOARDS ); //2.2ms from shutdown/POR to active mode + 520us till device can send wake tone, PER DEVICE
-
-        //AUTO ADDRESS ATTEMPT FOR EVERYONE
-
-        //ENABLE AUTO ADDRESSING MODE
-        WriteReg(0, CONTROL1, 0x01, 1, FRMWRT_ALL_W);
-
-        //SET ADDRESSES FOR EVERY BOARD
-        for(currentBoard=0; currentBoard<TOTALBOARDS; currentBoard++)
-        {
-            WriteReg(0, DIR0_ADDR, currentBoard, 1, FRMWRT_ALL_W);
-        }
-
-        //CHECK ADDRESS OF EACH BOARD THAT RESPONDS
-        for(currentBoard=0; currentBoard<TOTALBOARDS; currentBoard++)
-        {
-            memset(response_frame2,0,sizeof(response_frame2));
-            ReadReg(currentBoard, DIR0_ADDR, response_frame2, 1, 0, FRMWRT_SGL_R);
-            //IF A DEVICE DOESN'T RESPOND WITH ITS ADDRESS CORRECTLY
-            if(response_frame2[4] != currentBoard)
-            {
-                printConsole("BOARD %d NOT COMMUNICATING PROPERLY\n\r",currentBoard);
-                //THEN THE LAST BOARD TO RESPOND WAS THE LAST FUNCTIONING BOARD
-                topFoundBoard = currentBoard-1;
-
-                //EXIT THIS LOOP AND RE-ATTEMPT THE WAKE+AUTO-ADDRESS FROM THE TOP WORKING BOARD ONWARD
-                break;
-            }
-            else
-            {
-                topFoundBoard = currentBoard;
-                //printConsole("BOARD %d OKAY\n\r",currentBoard);
-            }
-        }
-    }
-
-
-    //SET BASE/STACK/TOP OF STACK BITS
-    WriteReg(0, COMM_CTRL, 0x02, 1, FRMWRT_ALL_W); //set everything as a stack device first
-
-    if(TOTALBOARDS==1) //if there's only 1 board, it's the base AND top of stack, so change it to those
-    {
-        WriteReg(0, COMM_CTRL, 0x01, 1, FRMWRT_SGL_W);
-    }
-    else //otherwise set the base and top of stack individually
-    {
-        WriteReg(0, COMM_CTRL, 0x00, 1, FRMWRT_SGL_W);
-        WriteReg(TOTALBOARDS-1, COMM_CTRL, 0x03, 1, FRMWRT_SGL_W);
-    }
-
-
-    //KEEP RELOADING OTP UNTIL OTP IS READING PROPERLY
-    while(otpPass == 0)
-    {
-        //BROADCAST WRITE OTP RELOAD USING MARGIN_GO
-        WriteReg(0, DIAG_OTP_CTRL, 0x01, 1, FRMWRT_ALL_W);
-        delay(3); //load time + CRC compute
-
-        //AUTO-ADDRESS AGAIN
-        //ENABLE AUTO ADDRESSING MODE
-        WriteReg(0, CONTROL1, 0X01, 1, FRMWRT_ALL_W);
-
-        //SET ADDRESSES FOR EVERY BOARD
-        for(currentBoard=0; currentBoard<TOTALBOARDS; currentBoard++)
-        {
-            WriteReg(0, DIR0_ADDR, currentBoard, 1, FRMWRT_ALL_W);
-        }
-
-        WriteReg(0, COMM_CTRL, 0x02, 1, FRMWRT_ALL_W); //set everything as a stack device first
-
-        if(TOTALBOARDS==1) //if there's only 1 board, it's the base AND top of stack, so change it to those
-        {
-            WriteReg(0, COMM_CTRL, 0x01, 1, FRMWRT_SGL_W);
-        }
-        else //otherwise set the base and top of stack individually
-        {
-            WriteReg(0, COMM_CTRL, 0x00, 1, FRMWRT_SGL_W);
-            WriteReg(TOTALBOARDS-1, COMM_CTRL, 0x03, 1, FRMWRT_SGL_W);
-        }
-
-
-        //RESET OTP FAULTS
-        WriteReg(0, FAULT_RST1, 0x0260, 2, FRMWRT_ALL_W);
-
-
-        //CHECK IF FAULT SUMMARY SET FOR ANY BOARD
-        memset(fault_frame, 0, sizeof(fault_frame));
-        ReadReg(0, FAULT_SUMMARY, fault_frame, 1, 0, FRMWRT_ALL_R);
-        memset(response_frame2, 0, sizeof(response_frame2));
-        ReadReg(0, FAULT_OTP, response_frame2, 1, 0, FRMWRT_ALL_R);
-        for(currentBoard=0; currentBoard<TOTALBOARDS; currentBoard++)
-        {
-            //Serial.println("board %d fault_sum = %02x\t",currentBoard,fault_frame[currentBoard*7+4]);
-            //Serial.println("board %d fault_otp = %02x\n",currentBoard,response_frame2[currentBoard*7+4]);
-            if((fault_frame[currentBoard*7+4] & 0x20 == 0x20) && (response_frame2[currentBoard*7+4] & 0x02 != 0x02))
-            {
-                printConsole("ERROR: DIAGMARGIN FAILED - FAULT_SUMMARY[FAULT_OTP] NONZERO, BOARD %d FAULT_SUMMARY = %02x, FAULT_OTP = %02x\n",TOTALBOARDS-currentBoard-1,fault_frame[currentBoard*7+4],response_frame2[currentBoard*7+4]);
-                otpPass = 0;
-            }
-            else
-            {
-                otpPass = 1;
-            }
-        }
-    }
-    //OPTIONAL: read back all device addresses
-    for(currentBoard=0; currentBoard<TOTALBOARDS; currentBoard++)
-    {
-        ReadReg(currentBoard, DIR0_ADDR, response_frame2, 1, 0, FRMWRT_SGL_R);
-    }
-}
 void AutoAddress()
 {
 
-    WriteReg(0, OTP_ECC_DATAIN1, 0X00, 1, FRMWRT_STK_W);
-    WriteReg(0, OTP_ECC_DATAIN2, 0X00, 1, FRMWRT_STK_W);
-    WriteReg(0, OTP_ECC_DATAIN3, 0X00, 1, FRMWRT_STK_W);
-    WriteReg(0, OTP_ECC_DATAIN4, 0X00, 1, FRMWRT_STK_W);
-    WriteReg(0, OTP_ECC_DATAIN5, 0X00, 1, FRMWRT_STK_W);
-    WriteReg(0, OTP_ECC_DATAIN6, 0X00, 1, FRMWRT_STK_W);
-    WriteReg(0, OTP_ECC_DATAIN7, 0X00, 1, FRMWRT_STK_W);
-    WriteReg(0, OTP_ECC_DATAIN8, 0X00, 1, FRMWRT_STK_W);
+    WriteReg(0, OTP_ECC_DATAIN1, 0X00, 1, FRMWRT_ALL_W);
+    WriteReg(0, OTP_ECC_DATAIN2, 0X00, 1, FRMWRT_ALL_W);
+    WriteReg(0, OTP_ECC_DATAIN3, 0X00, 1, FRMWRT_ALL_W);
+    WriteReg(0, OTP_ECC_DATAIN4, 0X00, 1, FRMWRT_ALL_W);
+    WriteReg(0, OTP_ECC_DATAIN5, 0X00, 1, FRMWRT_ALL_W);
+    WriteReg(0, OTP_ECC_DATAIN6, 0X00, 1, FRMWRT_ALL_W);
+    WriteReg(0, OTP_ECC_DATAIN7, 0X00, 1, FRMWRT_ALL_W);
+    WriteReg(0, OTP_ECC_DATAIN8, 0X00, 1, FRMWRT_ALL_W);
 
     //DUMMY WRITE TO SNCHRONIZE ALL DAISY CHAIN DEVICES DLL (IF A DEVICE RESET OCCURED PRIOR TO THIS)
     // WriteReg(0, OTP_ECC_TEST, 0X00, 1, FRMWRT_ALL_W);
 
     //ENABLE AUTO ADDRESSING MODE
     WriteReg(0, CONTROL1, 0X01, 1, FRMWRT_ALL_W);
-
+    Serial.print("Enabled auto addressing");
     //SET ADDRESSES FOR EVERY BOARD
     for(currentBoard=0; currentBoard<TOTALBOARDS; currentBoard++)
     {
@@ -400,6 +241,7 @@ void AutoAddress()
     ReadReg(0, OTP_ECC_DATAIN8, response_frame2, 1, 0, FRMWRT_STK_R);
     //SYNCRHONIZE THE DLL WITH A THROW-AWAY READ
     // ReadReg(0, OTP_ECC_TEST, response_frame2, 1, 0, FRMWRT_ALL_R);
+    Serial.println("After sync again");
 
     //OPTIONAL: read back all device addresses
     for(currentBoard=0; currentBoard<TOTALBOARDS; currentBoard++)
@@ -407,7 +249,7 @@ void AutoAddress()
         ReadReg(currentBoard, DIR0_ADDR, response_frame2, 1, 0, FRMWRT_SGL_R);
         // printConsole("board %c\n", response_frame2[4]);
     }
-
+    Serial.print("Before fault reset");
     //RESET ANY COMM FAULT CONDITIONS FROM STARTUP
     WriteReg(0, FAULT_RST2, 0x03, 1, FRMWRT_ALL_W);
 
@@ -707,7 +549,9 @@ int ReadReg(char bID, uint16_t wAddr, char * pData, char bLen, uint32_t dwTimeOu
     }
 
     if(bad){
-        restart_chips();
+        // restart_chips();
+        Serial.println("BAD CRC");
+
     }
 
     return bRes;

@@ -33,6 +33,7 @@ void read_cell_temps(BMS_status * modules);
 void read_die_temps(BMS_status * modules);
 void read_faults(BMS_status * modules);
 void printBatteryCellVoltages(BMS_status * modules);
+uint16_t sum_voltages(BMS_status * modules);
 
 
 #endif

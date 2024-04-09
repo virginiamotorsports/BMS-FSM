@@ -111,6 +111,18 @@ void read_faults(BMS_status * modules){
     
 }
 
+uint16_t sum_voltages(BMS_status * modules){
+    uint16_t pack_voltage = 0;
+    for (uint16_t cb = 0; cb < STACK_DEVICES; cb++)
+    {
+    for (int i = 0; i < 16; i++)
+    {
+        pack_voltage += modules[cb].cell_voltages[i];
+    }
+    }  
+    return pack_voltage;
+}
+
 
 void printBatteryCellVoltages(BMS_status * modules) {
 
@@ -128,3 +140,4 @@ void printBatteryCellVoltages(BMS_status * modules) {
         Serial.println(); // Move to the next line for the next pack
     }
 }
+

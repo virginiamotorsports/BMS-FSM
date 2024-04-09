@@ -5,7 +5,7 @@
 extern uint8_t loop_counter;
 
 unsigned long lastMillis = millis();
-uint8_t message_data[LAST_ITEM - STATUS][8];
+uint8_t message_data[LAST_ITEM - STATUS + 3][8]; //defined can msgs and the 
 
 char UDP_Buffer[200];
 BMS_status modules[] = {{}, {}, {}, {}, {}, {}};
@@ -58,48 +58,64 @@ std::map<FSM_STATE, State*> state_map = {
 
 void send_can_data(void){
 
-  // Copy cell temps over
-  memcpy(message_data[CELL_TEMP_0 - START_ITEM], modules[0].cell_temps, 8);
-  memcpy(message_data[CELL_TEMP_1 - START_ITEM], modules[1].cell_temps, 8);
-  memcpy(message_data[CELL_TEMP_2 - START_ITEM], modules[2].cell_temps, 8);
-  memcpy(message_data[CELL_TEMP_3 - START_ITEM], modules[3].cell_temps, 8);
-  memcpy(message_data[CELL_TEMP_4 - START_ITEM], modules[4].cell_temps, 8);
-  memcpy(message_data[CELL_TEMP_5 - START_ITEM], modules[5].cell_temps, 8);
+    // Copy cell temps over
+    memcpy(message_data[CELL_TEMP_0 - START_ITEM], modules[0].cell_temps, 8);
+    memcpy(message_data[CELL_TEMP_1 - START_ITEM], modules[1].cell_temps, 8);
+    memcpy(message_data[CELL_TEMP_2 - START_ITEM], modules[2].cell_temps, 8);
+    memcpy(message_data[CELL_TEMP_3 - START_ITEM], modules[3].cell_temps, 8);
+    memcpy(message_data[CELL_TEMP_4 - START_ITEM], modules[4].cell_temps, 8);
+    memcpy(message_data[CELL_TEMP_5 - START_ITEM], modules[5].cell_temps, 8);
 
-  // Copy cell voltages over
-  memcpy(message_data[CELL_VOLTAGE_0 - START_ITEM], modules[0].cell_voltages, 8);
-  memcpy(message_data[CELL_VOLTAGE_1 - START_ITEM], (modules[0].cell_voltages + 8), 8);
+    // Copy cell voltages over
+    memcpy(message_data[CELL_VOLTAGE_0 - START_ITEM], modules[0].cell_voltages, 8);
+    memcpy(message_data[CELL_VOLTAGE_1 - START_ITEM], (modules[0].cell_voltages + 8), 8);
 
-  memcpy(message_data[CELL_VOLTAGE_2 - START_ITEM], (modules[1].cell_voltages), 8);
-  memcpy(message_data[CELL_VOLTAGE_3 - START_ITEM], (modules[1].cell_voltages + 8), 8);
-  
-  memcpy(message_data[CELL_VOLTAGE_4 - START_ITEM], modules[2].cell_voltages, 8);
-  memcpy(message_data[CELL_VOLTAGE_5 - START_ITEM], (modules[2].cell_voltages + 8), 8);
+    memcpy(message_data[CELL_VOLTAGE_2 - START_ITEM], (modules[1].cell_voltages), 8);
+    memcpy(message_data[CELL_VOLTAGE_3 - START_ITEM], (modules[1].cell_voltages + 8), 8);
+    
+    memcpy(message_data[CELL_VOLTAGE_4 - START_ITEM], modules[2].cell_voltages, 8);
+    memcpy(message_data[CELL_VOLTAGE_5 - START_ITEM], (modules[2].cell_voltages + 8), 8);
 
-  memcpy(message_data[CELL_VOLTAGE_6 - START_ITEM], (modules[3].cell_voltages), 8);
-  memcpy(message_data[CELL_VOLTAGE_7 - START_ITEM], (modules[3].cell_voltages + 8), 8);
-  
-  memcpy(message_data[CELL_VOLTAGE_8 - START_ITEM], modules[4].cell_voltages, 8);
-  memcpy(message_data[CELL_VOLTAGE_9 - START_ITEM], (modules[4].cell_voltages + 8), 8);
+    memcpy(message_data[CELL_VOLTAGE_6 - START_ITEM], (modules[3].cell_voltages), 8);
+    memcpy(message_data[CELL_VOLTAGE_7 - START_ITEM], (modules[3].cell_voltages + 8), 8);
+    
+    memcpy(message_data[CELL_VOLTAGE_8 - START_ITEM], modules[4].cell_voltages, 8);
+    memcpy(message_data[CELL_VOLTAGE_9 - START_ITEM], (modules[4].cell_voltages + 8), 8);
 
-  memcpy(message_data[CELL_VOLTAGE_10 - START_ITEM], (modules[5].cell_voltages), 8);
-  memcpy(message_data[CELL_VOLTAGE_11 - START_ITEM], (modules[5].cell_voltages + 8), 8);
+    memcpy(message_data[CELL_VOLTAGE_10 - START_ITEM], (modules[5].cell_voltages), 8);
+    memcpy(message_data[CELL_VOLTAGE_11 - START_ITEM], (modules[5].cell_voltages + 8), 8);
 
+    uint16_t pack_voltage = sum_voltages(modules); 
 
-  for(uint32_t addr = START_ITEM; addr < LAST_ITEM; addr++){
-    // memcpy((void *)(msg_data), &message_data[addr], sizeof(message_data[addr]));
-    // Serial.println(addr);
-    // *msg = CanMsg(0x400, sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]);
+    memcpy(message_data[LAST_ITEM + 1] + 3, &pack_voltage, 2);
+    memcpy(message_data[LAST_ITEM + 1] + 3, &pack_voltage, 2);
 
-    int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]));
-    if(ret != 0){
-      Serial.print("CAN Error: ");
-      Serial.println(ret);
-      CAN.clearError();
-      break;
+    for(uint32_t addr = START_ITEM; addr < LAST_ITEM; addr++){
+        // memcpy((void *)(msg_data), &message_data[addr], sizeof(message_data[addr]));
+        // Serial.println(addr);
+        // *msg = CanMsg(0x400, sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]);
+
+        int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]));
+        if(!(ret == 0 || ret == 1)){
+        Serial.print("CAN Error: ");
+        Serial.println(ret);
+        CAN.clearError();
+        break;
+        }
+        delay(10);
+        // Serial.println(ret);
     }
-    // Serial.println(ret);
-  }
+
+    for(uint32_t addr = ORION_MSG_1; addr <= ORION_MSG_3; addr++){
+        int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[LAST_ITEM + (addr - ORION_MSG_1)]), message_data[LAST_ITEM + (addr - ORION_MSG_1)]));
+        if(!(ret == 0 || ret == 1)){
+        Serial.print("CAN Error: ");
+        Serial.println(ret);
+        CAN.clearError();
+        break;
+        }
+        delay(10);
+    }
 }
 
 
@@ -134,7 +150,7 @@ bool establishConnection() {
     Serial.setTimeout(500);
     Serial1.begin(BAUDRATE, SERIAL_8N1);
     Serial1.setTimeout(1000);
-    CAN.begin(CanBitRate::BR_500k);
+    CAN.begin(CanBitRate::BR_250k);
 
     return true;
 }
@@ -200,6 +216,8 @@ void startupAction() {
     if (communicationsOnOff) {
         // Write registers to the device
         bootCommands();
+        delay(500);
+        startup_done = true;
     }
 }
 

@@ -33,7 +33,7 @@
 #include "B0_reg.h"
 
 // User defines
-#define TOTALBOARDS 2      //boards in stack
+#define TOTALBOARDS 4     //boards in stack
 #define STACK_DEVICES (TOTALBOARDS-BRIDGEDEVICE)
 #define CELL_TEMP_NUM 8
 #define ACTIVECHANNELS 16   //channels to activate (incomplete, does not work right now)
