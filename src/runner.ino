@@ -22,8 +22,7 @@ void setup() {
 }
 
 void loop() {
-    
-    //bootCommands();
+    bootCommands();
     Serial.println("On main");
     (*(currentState->action))();
     FSM_STATE nextState = (*(currentState->transition))();

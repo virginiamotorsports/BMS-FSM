@@ -213,9 +213,6 @@ bool commEstablished() {
 
 void bootCommands() {
     // Run Boot commands
-    pinMode(FAULT_PIN, OUTPUT);
-    pinMode(NFAULT_PIN, INPUT);
-    digitalWrite(FAULT_PIN, LOW);  // Pull fault_pin to low
 
     Wake79616();
     delayMicroseconds(
@@ -462,7 +459,3 @@ FSM_STATE cellBalancingTransition() {
     // Check faults
     return CELL_BALANCE;
 }
-
-// int main() {
-    
-// }
