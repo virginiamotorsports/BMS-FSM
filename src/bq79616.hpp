@@ -95,7 +95,7 @@ struct BMS_status{
     uint8_t cell_temps[8];
     uint8_t status;
     uint16_t die_temp;
-    bool fault;
+    uint8_t faults; // 0x00 = DIE_OT, 0x01 = OV, 0x02 = UV, 0x03 = OT, 0x04 = UT
 };
 
 // }

@@ -28,8 +28,11 @@ const float_t c1 = 2.61E-6;
 const float_t d1 = 6.33E-8;
 
 uint8_t read_signal_pins(void);
-void read_cell_voltages(BMS_status * modules[6]);
-void read_cell_temps(BMS_status * modules[6]);
-void read_die_temps(BMS_status * modules[6]);
+void read_cell_voltages(BMS_status * modules);
+void read_cell_temps(BMS_status * modules);
+void read_die_temps(BMS_status * modules);
+void read_faults(BMS_status * modules);
+void printBatteryCellVoltages(BMS_status * modules);
+
 
 #endif

@@ -8,7 +8,7 @@ unsigned long lastMillis = millis();
 uint8_t message_data[LAST_ITEM - STATUS][8];
 
 char UDP_Buffer[200];
-struct BMS_status * modules;
+BMS_status modules[] = {{}, {}, {}, {}, {}, {}};
 int countTimer = 0;
 bool comm_fault = false;
 bool bms_fault = false;
@@ -25,6 +25,7 @@ long double sr_val = 0;
 char response_frame_current[(1 + 6)];   //
 
 bool communicationsOnOff = false;
+uint8_t pin_status;
 int fault_pin = true;
 bool readyToRun = false;
 bool endCellBalancing = false;
@@ -214,25 +215,36 @@ FSM_STATE startupTransition() {
 
 void normalOpAction() {
     if (readyToRun) {
-        n_fault = !digitalRead(NFAULT_PIN);
 
-        WriteReg(0, OVUV_CTRL, 0x05, 1, FRMWRT_STK_W);  // run OV UV
-        WriteReg(0, OTUT_CTRL, 0x05, 1, FRMWRT_STK_W);  // run OT UT
-        ReadReg(0, FAULT_SUMMARY, response_frame_current, 1, 0, FRMWRT_STK_R);  // 175 us
+        WriteReg(0, OVUV_CTRL, 0x05, 1, FRMWRT_STK_W);  // run OV UV checks
+        WriteReg(0, OTUT_CTRL, 0x05, 1, FRMWRT_STK_W);  // run OT UT checks
 
         // printResponseFrameForDebug();
 
-        OVUV_fault = ((response_frame_current[4] & 0x04) ? true : false);
-        OTUT_fault = ((response_frame_current[4] & 0x08) ? true : false);
+        read_faults(modules);
 
-        read_cell_temps(&modules);
-        read_cell_temps(&modules);
-        read_die_temps(&modules);
+        OVUV_fault = false;
+        OTUT_fault = false;
+
+        for (int i = 0; i < STACK_DEVICES; i++) {
+            if (modules[i].faults & 0x01 || modules[i].faults & 0x02) {
+                OVUV_fault = true;
+            }
+            if (modules[i].faults & 0x03 || modules[i].faults & 0x04) {
+                OTUT_fault = true;
+            }
+        }
+
+        pin_status = read_signal_pins();
+
+        read_cell_voltages(modules);
+        read_cell_temps(modules);
+        read_die_temps(modules);
 
         send_can_data();
 
         if (OVUV_fault) {
-        WriteReg(0, FAULT_RST1, 0x18, 1, FRMWRT_STK_W);  // reset fault
+            WriteReg(0, FAULT_RST1, 0x18, 1, FRMWRT_STK_W);  // reset fault
         }
 
         if (OTUT_fault) {
@@ -242,7 +254,9 @@ void normalOpAction() {
         if (millis() - lastMillis >= 30 * 1000UL && !(OVUV_fault || OTUT_fault)) {
             lastMillis = millis();  // get ready for the next iteration
             runCellBalancing();
-        }    
+        }  
+
+        printBatteryCellVoltages(modules);
     }
 }
 

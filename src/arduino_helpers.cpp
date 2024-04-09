@@ -9,7 +9,7 @@ uint8_t read_signal_pins(void){
     return status;
 }
 
-void read_cell_voltages(BMS_status * modules[6]){
+void read_cell_voltages(BMS_status * modules){
 
     char voltage_response_frame[(16 * 2 + 6) * STACK_DEVICES];  // hold all 16 vcell*_hi/lo values
     memset(voltage_response_frame, 0, sizeof(voltage_response_frame));
@@ -26,15 +26,15 @@ void read_cell_voltages(BMS_status * modules[6]){
         int boardcharStart = (ACTIVECHANNELS * 2 + 6) * cb;
         raw_data = (((voltage_response_frame[boardcharStart + (i * 2) + 4] & 0xFF) << 8) | (voltage_response_frame[boardcharStart + (i * 2) + 5] & 0xFF));
         uint16_t temp_voltage = (uint16_t)(Complement(raw_data, 0.19073)) / 10;
-        (*modules)[cb].cell_voltages[i] = (uint8_t)(((uint16_t)(Complement(raw_data, 0.19073))) / 10.0);
+        modules[cb].cell_voltages[i] = (uint8_t)(((uint16_t)(Complement(raw_data, 0.19073))) / 10.0);
         if(temp_voltage <= 250)
         {
-        (*modules)[cb].cell_voltages[i] = 0;
+        modules[cb].cell_voltages[i] = 0;
         // printConsole("Cell %d, %.3f ",i, (modules[cb].cell_voltages[i]) / 100.0 );
 
         }
         else{
-        (*modules)[cb].cell_voltages[i] = (uint8_t)(((uint16_t)(Complement(raw_data, 0.19073))) / 10.0 - 250);
+        modules[cb].cell_voltages[i] = (uint8_t)(((uint16_t)(Complement(raw_data, 0.19073))) / 10.0 - 250);
         // printConsole("Cell %d, %.3f ",i, (modules[cb].cell_voltages[i] + 250) / 100.0 );
 
         }
@@ -43,7 +43,7 @@ void read_cell_voltages(BMS_status * modules[6]){
     }
 
 }
-void read_cell_temps(BMS_status * modules[6]){
+void read_cell_temps(BMS_status * modules){
     char cell_temp_response_frame[(8 * 2 + 6) * STACK_DEVICES];  // hold all 16 vcell*_hi/lo values
     uint16_t raw_data = 0;
     memset(cell_temp_response_frame, 0, sizeof(cell_temp_response_frame));
@@ -61,20 +61,20 @@ void read_cell_temps(BMS_status * modules[6]){
         temp_voltage = (uint16_t)(raw_data * 0.15259);
         if(temp_voltage >= 4800)
         {
-        (*modules)[cb].cell_temps[i] = 255;
+        modules[cb].cell_temps[i] = 255;
         }
         else{
-        (*modules)[cb].cell_temps[i] = (uint8_t)((uint16_t)(GET_TEMP(GET_RESISTANCE((temp_voltage / 1000.0)))));
+        modules[cb].cell_temps[i] = (uint8_t)((uint16_t)(GET_TEMP(GET_RESISTANCE((temp_voltage / 1000.0)))));
         }
-        // printConsole("%i ", (*modules)[cb].cell_temps[i]);
+        // printConsole("%i ", modules[cb].cell_temps[i]);
     }
     // printConsole("\n\r"); // newline per board
     }
 
 
 }
-void read_die_temps(BMS_status * modules[6]){
-    char die_temp_response_frame[(2 + 6) * STACK_DEVICES];  // hold all 16 vcell*_hi/lo values
+void read_die_temps(BMS_status * modules){
+    char die_temp_response_frame[(2 + 6) * STACK_DEVICES]; 
     uint16_t raw_data = 0;
     memset(die_temp_response_frame, 0, sizeof(die_temp_response_frame));
 
@@ -91,14 +91,40 @@ void read_die_temps(BMS_status * modules[6]){
         temp_voltage = (uint16_t)(raw_data * 0.15259);
         if(temp_voltage >= 4800)
         {
-        (*modules)[cb].cell_temps[i] = 255;
+        modules[cb].cell_temps[i] = 255;
         }
         else{
-        (*modules)[cb].cell_temps[i] = (uint8_t)((uint16_t)(GET_TEMP(GET_RESISTANCE((temp_voltage / 1000.0)))));
+        modules[cb].cell_temps[i] = (uint8_t)((uint16_t)(GET_TEMP(GET_RESISTANCE((temp_voltage / 1000.0)))));
         }
-        // printConsole("%i ", (*modules)[cb].cell_temps[i]);
+        // printConsole("%i ", modules[cb].cell_temps[i]);
     }
     // printConsole("\n\r"); // newline per board
     }
 
+}
+
+void read_faults(BMS_status * modules){
+    char fault_response_frame[(2 + 6) * STACK_DEVICES];  
+    memset(fault_response_frame, 0, sizeof(fault_response_frame));
+
+    ReadReg(0, FAULT_SUMMARY, fault_response_frame, 1, 0, FRMWRT_STK_R);
+    
+}
+
+
+void printBatteryCellVoltages(BMS_status * modules) {
+
+    for (int i = 0; i < 6; i++) {
+        Serial.print("Pack ");
+        Serial.print(i+1);
+        for (size_t j = 0; j < 16; j++) {
+            // Untransform the value
+            float voltage = (modules[i].cell_voltages[j] + 250.0) / 100.0;
+            
+            // Print the untransformed voltage
+            Serial.print("\t");
+            Serial.print(voltage, 2); // Print with 2 decimal places
+        }
+        Serial.println(); // Move to the next line for the next pack
+    }
 }
