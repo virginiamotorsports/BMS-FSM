@@ -5,6 +5,10 @@
 extern uint8_t loop_counter;
 
 unsigned long lastMillis = millis();
+unsigned long temp_fault_timer = millis();
+unsigned long voltage_fault_timer = millis();
+unsigned long n_fault_timer = millis();
+
 uint8_t message_data[LAST_ITEM - STATUS + 3][8]; //defined can msgs and the 
 
 char UDP_Buffer[200];
@@ -257,7 +261,7 @@ void normalOpAction() {
         WriteReg(0, OVUV_CTRL, 0x05, 1, FRMWRT_STK_W);  // run OV UV checks
         WriteReg(0, OTUT_CTRL, 0x05, 1, FRMWRT_STK_W);  // run OT UT checks
 
-        // printResponseFrameForDebug();
+        //printResponseFrameForDebug();
 
         read_faults(modules);
 
@@ -300,26 +304,35 @@ void normalOpAction() {
 }
 
 FSM_STATE normalOpTransition() {
-    if (bms_fault || comm_fault || n_fault || OVUV_fault || OTUT_fault) {
+
+    if (comm_fault) {
+        Serial.print("COMM Fault");
         digitalWrite(FAULT_PIN, LOW);
-        Serial.println("Fault Detected");
-        // delay(5000);
-        // HERE: need to switch to appropriate FAULT STATE by returning.
-        if (comm_fault) {
-            return FAULT_COMM;
-        }
-        else if (OVUV_fault || OTUT_fault) {
-            return FAULT_TMPVOLT;
-        }
-        else if (bms_fault || n_fault) {
-            return FAULT_UNEXPECTED;
-        }
+        return FAULT_COMM;
     }
-    else if (millis() - lastMillis >= 30 * 1000UL){
+    else if(OTUT_fault &&  millis() - temp_fault_timer > 5 * 1000UL){
+        Serial.print("OTUT Fault");
+        digitalWrite(FAULT_PIN, LOW);
+        return NORMALOP;
+    }
+    else if(OVUV_fault &&  millis() - temp_fault_timer > 5 * 1000UL){
+        Serial.print("OVOT Fault");
+        digitalWrite(FAULT_PIN, LOW);
+        return NORMALOP;
+    }
+    else if(n_fault &&  millis() - n_fault_timer > 5 * 1000UL){
+        Serial.print("N Fault");
+        digitalWrite(FAULT_PIN, LOW);
+        return NORMALOP;
+    }
+    else if(millis() - lastMillis >= 30 * 1000UL){
             return CELL_BALANCE;
-        }
+    }
     else {
         digitalWrite(FAULT_PIN, HIGH);
+        n_fault_timer = millis();
+        temp_fault_timer = millis();
+        voltage_fault_timer = millis(); //reset fault timers if there are no faults
         return NORMALOP;
     }
 }

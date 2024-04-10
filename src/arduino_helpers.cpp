@@ -107,6 +107,11 @@ void read_faults(BMS_status * modules){
     char fault_response_frame[(2 + 6) * STACK_DEVICES];  
     memset(fault_response_frame, 0, sizeof(fault_response_frame));
     ReadReg(0, FAULT_SUMMARY, fault_response_frame, 1, 0, FRMWRT_STK_R);
+    for (uint16_t cb = 0; cb < STACK_DEVICES; cb++)
+    {
+        int boardcharStart = (1 + 6) * cb;
+        modules[cb].faults = fault_response_frame[boardcharStart + 4];
+    }  
 }
 
 float sum_voltages(BMS_status * modules){
