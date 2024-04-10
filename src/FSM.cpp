@@ -85,10 +85,25 @@ void send_can_data(void){
     memcpy(message_data[CELL_VOLTAGE_10 - START_ITEM], (modules[5].cell_voltages), 8);
     memcpy(message_data[CELL_VOLTAGE_11 - START_ITEM], (modules[5].cell_voltages + 8), 8);
 
-    uint16_t pack_voltage = sum_voltages(modules); 
+    float_t pack_voltage = sum_voltages(modules);
+    uint16_t pack_voltage_scaled = floor(pack_voltage * 10);
+    // Serial.println(pack_voltage);
 
-    memcpy(message_data[LAST_ITEM + 1] + 3, &pack_voltage, 2);
-    memcpy(message_data[LAST_ITEM + 1] + 3, &pack_voltage, 2);
+    uint8_t soc = calc_soc(pack_voltage_scaled) * 2;
+
+    memcpy(message_data[LAST_ITEM + 1] + 3, &pack_voltage_scaled, 2);
+    memcpy(message_data[LAST_ITEM + 1] + 5, &soc, 1);
+
+    uint16_t cell_temps = calc_min_max_temp(modules);
+
+    memcpy(message_data[LAST_ITEM + 2] + 5, &cell_temps, 2);
+
+    uint32_t min_max_cell_volts = calc_min_max_volts(modules);
+
+    memcpy(message_data[LAST_ITEM + 3] + 1, &min_max_cell_volts, 4);
+    // Serial.println(min_max_cell_volts & 0xFFFF);
+
+
 
     for(uint32_t addr = START_ITEM; addr < LAST_ITEM; addr++){
         // memcpy((void *)(msg_data), &message_data[addr], sizeof(message_data[addr]));
@@ -102,19 +117,19 @@ void send_can_data(void){
         CAN.clearError();
         break;
         }
-        delay(10);
+        delay(5);
         // Serial.println(ret);
     }
 
     for(uint32_t addr = ORION_MSG_1; addr <= ORION_MSG_3; addr++){
-        int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[LAST_ITEM + (addr - ORION_MSG_1)]), message_data[LAST_ITEM + (addr - ORION_MSG_1)]));
+        int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]), message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]));
         if(!(ret == 0 || ret == 1)){
         Serial.print("CAN Error: ");
         Serial.println(ret);
         CAN.clearError();
         break;
         }
-        delay(10);
+        delay(5);
     }
 }
 
@@ -190,9 +205,14 @@ bool optimalValuesAchieved() { return false; }
 
 void runCellBalancing() {
     // Run cell balancing
-    Serial.println("Running CB");
-    WriteReg(0, BAL_CTRL2, 0x33, 1,
-             FRMWRT_ALL_W);  // starts balancing all cells
+    // First Check CB state, if not cb, start, otherwise check
+    if(pin_status & 0x2){
+        Serial.println("Starting CB");
+        WriteReg(0, BAL_CTRL2, 0x33, 1, FRMWRT_STK_W);  // starts balancing all cells
+        endCellBalancing = true;
+    }
+    lastMillis = millis();
+
 }
 
 void initialAction() {
@@ -244,23 +264,6 @@ void normalOpAction() {
         OVUV_fault = false;
         OTUT_fault = false;
 
-        for (int i = 0; i < STACK_DEVICES; i++) {
-            if (modules[i].faults & 0x01 || modules[i].faults & 0x02) {
-                OVUV_fault = true;
-            }
-            if (modules[i].faults & 0x03 || modules[i].faults & 0x04) {
-                OTUT_fault = true;
-            }
-        }
-
-        pin_status = read_signal_pins();
-
-        read_cell_voltages(modules);
-        read_cell_temps(modules);
-        read_die_temps(modules);
-
-        send_can_data();
-
         if (OVUV_fault) {
             WriteReg(0, FAULT_RST1, 0x18, 1, FRMWRT_STK_W);  // reset fault
         }
@@ -269,10 +272,28 @@ void normalOpAction() {
             WriteReg(0, FAULT_RST1, 0x60, 1, FRMWRT_STK_W);  // reset fault
         }
 
-        if (millis() - lastMillis >= 30 * 1000UL && !(OVUV_fault || OTUT_fault)) {
-            lastMillis = millis();  // get ready for the next iteration
-            runCellBalancing();
-        }  
+        for (int i = 0; i < STACK_DEVICES; i++) {
+            if (modules[i].faults & 0x01 || modules[i].faults & 0x02) {
+                OVUV_fault = true;
+            }
+            if (modules[i].faults & 0x03 || modules[i].faults & 0x04) {
+                OTUT_fault = true;
+            }
+        }
+        memset(&pin_status, 0, 1);
+        pin_status = read_signal_pins(); // bits 0 -> nfault, 1 -> IMD_STATUS, 2 -> POS_AIR, 3 -> NEG_AIR
+
+
+        read_cell_voltages(modules);
+        read_cell_temps(modules);
+        read_die_temps(modules);
+
+        send_can_data();
+
+        // if (millis() - lastMillis >= 30 * 1000UL && !(OVUV_fault || OTUT_fault)) {
+        //     lastMillis = millis();  // get ready for the next iteration
+        //     runCellBalancing();
+        // }  
 
         printBatteryCellVoltages(modules);
     }
@@ -294,6 +315,9 @@ FSM_STATE normalOpTransition() {
             return FAULT_UNEXPECTED;
         }
     }
+    else if (millis() - lastMillis >= 30 * 1000UL){
+            return CELL_BALANCE;
+        }
     else {
         digitalWrite(FAULT_PIN, HIGH);
         return NORMALOP;

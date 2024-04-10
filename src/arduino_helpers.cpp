@@ -106,23 +106,59 @@ void read_die_temps(BMS_status * modules){
 void read_faults(BMS_status * modules){
     char fault_response_frame[(2 + 6) * STACK_DEVICES];  
     memset(fault_response_frame, 0, sizeof(fault_response_frame));
-
     ReadReg(0, FAULT_SUMMARY, fault_response_frame, 1, 0, FRMWRT_STK_R);
-    
 }
 
-uint16_t sum_voltages(BMS_status * modules){
-    uint16_t pack_voltage = 0;
+float sum_voltages(BMS_status * modules){
+    float pack_voltage = 0.0;
+
     for (uint16_t cb = 0; cb < STACK_DEVICES; cb++)
     {
-    for (int i = 0; i < 16; i++)
-    {
-        pack_voltage += modules[cb].cell_voltages[i];
-    }
+        for (int i = 0; i < 16; i++)
+        {
+            pack_voltage += (modules[cb].cell_voltages[i] + 250.0) / 100;
+        }
     }  
     return pack_voltage;
 }
 
+uint8_t calc_soc(uint16_t pack_voltage){
+    return 100; //NEEDS TO BE IMPLEMENTED
+}
+
+uint16_t calc_min_max_temp(BMS_status * modules){
+    int8_t min_temp = 255;
+    int8_t max_temp = 0;
+    for (uint16_t cb = 0; cb < STACK_DEVICES; cb++)
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            if(min_temp > modules[cb].cell_temps[i])
+                min_temp = modules[cb].cell_temps[i];
+            else if(max_temp < modules[cb].cell_temps[i])
+                max_temp = modules[cb].cell_temps[i];
+        }
+    }  
+    return static_cast<uint16_t>(max_temp << 8 | min_temp);
+}
+
+uint32_t calc_min_max_volts(BMS_status * modules){
+    uint16_t min_volts = 65000;
+    uint16_t max_volts = 0;
+    for (uint16_t cb = 0; cb < STACK_DEVICES; cb++)
+    {
+        for (int i = 0; i < 16; i++)
+        {
+            float_t cur_cell = ((modules[cb].cell_voltages[i] + 250.0) / 100) * 10000;
+            if(min_volts > cur_cell)
+                min_volts = cur_cell;
+            else if(max_volts < cur_cell)
+                max_volts = cur_cell;
+            
+        }
+    }  
+    return static_cast<uint32_t>(min_volts << 16 | max_volts);
+}
 
 void printBatteryCellVoltages(BMS_status * modules) {
 

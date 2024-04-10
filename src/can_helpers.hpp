@@ -73,7 +73,7 @@ Is_Ready_State 54 1 Unsigned 1 0 0 1
 Is_Charging_State 55 1 Unsigned 1 0 0 1
 */
 
-#define ORION_MSG_2 0x6B0
+#define ORION_MSG_2 0x6B1
 /*
 Signal Start_bit Length_[bit] Value_Type Factor Offset Min Max
 Pack_DCL 8 16 Unsigned 1 0 0 65535
@@ -83,7 +83,7 @@ Pack_Low_Temp 40 8 Signed 1 0 -128 127
 */
 
 
-#define ORION_MSG_3 0x6B0
+#define ORION_MSG_3 0x6B2
 /*
 Signal Start_bit Length_[bit] Value_Type Factor Offset Min Max
 Low_Cell_Voltage 8 16 Unsigned 0.0001 0 0 6.5535
