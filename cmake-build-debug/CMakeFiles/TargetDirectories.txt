@@ -1,3 +1,0 @@
-/Users/miktad/Desktop/vamotorsports/BMS-FSM/cmake-build-debug/CMakeFiles/BMS_FSM.dir
-/Users/miktad/Desktop/vamotorsports/BMS-FSM/cmake-build-debug/CMakeFiles/edit_cache.dir
-/Users/miktad/Desktop/vamotorsports/BMS-FSM/cmake-build-debug/CMakeFiles/rebuild_cache.dir

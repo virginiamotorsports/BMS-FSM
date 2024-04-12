@@ -1,10 +1,8 @@
 #include <Arduino.h>
-// #include <SoftwareSerial.h>
+#include <Arduino_CAN.h>
+#include "arduino_helpers.hpp"
 #include "FSM.h"
 #include <map>
-
-#define FAULT_PIN D3
-#define NFAULT_PIN D2
 
 extern State initialState;
 extern std::map<FSM_STATE, State*> state_map;
@@ -12,19 +10,34 @@ extern std::map<FSM_STATE, State*> state_map;
 State* currentState = &initialState;
 
 void setup() {
-    Serial.begin(9600);
+    
+    // establishConnection();
 
     pinMode(FAULT_PIN, OUTPUT);
     pinMode(NFAULT_PIN, INPUT);
+    pinMode(IMD_STATUS, INPUT_PULLDOWN);
+    pinMode(POS_AIR_STATUS, INPUT_PULLDOWN);
+    pinMode(NEG_AIR_STATUS, INPUT_PULLDOWN);
+
     digitalWrite(FAULT_PIN, LOW);
 
-    Serial.println("On loop");
+    // bootCommands();
 }
 
+uint8_t loop_counter = 0;
+
 void loop() {
-    bootCommands();
-    Serial.println("On main");
+    // Serial.println("On main");
     (*(currentState->action))();
     FSM_STATE nextState = (*(currentState->transition))();
     currentState = state_map[nextState];
+    // Serial.print("nextState: ");
+    // Serial.println(nextState);
+    // Serial.println(uint32_t(&normalOpTransition));
+
+    loop_counter++; // This will be used for tasks we decide are periodic such that we can run the state action items async from the update timer
+    if(loop_counter == 10){
+        loop_counter = 0;
+    }
+    delay(500);
 }

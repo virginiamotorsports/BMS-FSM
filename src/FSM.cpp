@@ -1,50 +1,18 @@
 #include "FSM.h"
-#include <Arduino.h>
-#include <Arduino_CAN.h>
-#include <SoftwareSerial.h>
-#include <WiFiS3.h>
-#include <math.h>
-#include <stdio.h>
-
-#include <iostream>
-#include <map>
-
-#include "BMSFSM.hpp"
-#include "bq79616.hpp"
 #include "can_helpers.hpp"
+#include "arduino_helpers.hpp"
 
-#define FAULT_PIN D3
-#define NFAULT_PIN D2
+extern uint8_t loop_counter;
 
-#define SECRET_SSID "BMS_WIFI"
-#define SECRET_PASS "batteryboyz"
+unsigned long lastMillis = millis();
+unsigned long temp_fault_timer = millis();
+unsigned long voltage_fault_timer = millis();
+unsigned long n_fault_timer = millis();
 
-#define GET_TEMP(resistance)                          \
-    (1 / (a1 + b1 * (log(resistance / 10000.0)) +     \
-          c1 * (pow(log(resistance / 10000.0), 2)) +  \
-          d1 * (pow(log(resistance / 10000.0), 3))) - \
-     273.15)
-#define GET_RESISTANCE(voltage) ((10000 * voltage) / (5 - voltage))
-
-IPAddress send_to_address(192, 168, 244, 2);
-
-///////please enter your sensitive data in the Secret tab/arduino_secrets.h
-char ssid[] = SECRET_SSID;  // your network SSID (name)
-char pass[] = SECRET_PASS;   // your network password (use for WPA, or use as key for WEP)
-int keyIndex = 0;  // your network key index number (needed only for WEP)
-
-int led = LED_BUILTIN;
-int status = WL_IDLE_STATUS;
-
-const float_t a1 = 0.003354016;
-const float_t b1 = 0.000256524;
-const float_t c1 = 2.61E-6;
-const float_t d1 = 6.33E-8;
-
-unsigned long lastMillis;
+uint8_t message_data[LAST_ITEM - STATUS + 3][8]; //defined can msgs and the 
 
 char UDP_Buffer[200];
-struct BMS_status modules[6];
+BMS_status modules[] = {{}, {}, {}, {}, {}, {}};
 int countTimer = 0;
 bool comm_fault = false;
 bool bms_fault = false;
@@ -52,17 +20,16 @@ bool n_fault = false;
 bool OVUV_fault = false;
 bool OTUT_fault = false;
 
-uint16_t raw_data = 0;
 int32_t signed_val = 0;
 long double sr_val = 0;
-char voltage_response_frame[(16 * 2 + 6) *
-TOTALBOARDS];  // hold all 16 vcell*_hi/lo values
-char temp_response_frame[(8 * 2 + 6) *
-TOTALBOARDS];  // hold all 16 vcell*_hi/lo values
+// char voltage_response_frame[(16 * 2 + 6) *
+// TOTALBOARDS];  // hold all 16 vcell*_hi/lo values
+// char temp_response_frame[(8 * 2 + 6) *
+// TOTALBOARDS];  // hold all 16 vcell*_hi/lo values
 char response_frame_current[(1 + 6)];   //
-WiFiUDP udp;
 
 bool communicationsOnOff = false;
+uint8_t pin_status;
 int fault_pin = true;
 bool readyToRun = false;
 bool endCellBalancing = false;
@@ -93,77 +60,83 @@ std::map<FSM_STATE, State*> state_map = {
     {FAULT_TMPVOLT, &tempVoltageFaultState},
     {FAULT_UNEXPECTED, &unexpectedFaultState} };
 
-void send_udp_packet(void) {
-    for (uint16_t cb = 0;
-         cb < (BRIDGEDEVICE == 1 ? TOTALBOARDS - 1 : TOTALBOARDS); cb++) {
-        memcpy(UDP_Buffer, &cb, sizeof(cb));
-        memcpy((UDP_Buffer + 2), modules[cb].cell_voltages,
-               sizeof(modules[cb].cell_voltages));
-        memcpy((UDP_Buffer + sizeof(modules[cb].cell_voltages) + 2),
-               modules[cb].cell_temps, sizeof(modules[cb].cell_temps));
-        int ret = udp.beginPacket(IPAddress(192, 168, 244, 2), 10244);
-        if (ret == 0) {
-            Serial.print("udp failed");
-        }
-        else {
-            udp.write(UDP_Buffer, 50);
-            udp.endPacket();
-        }
-    }
-}
+void send_can_data(void){
 
-void send_can_data(void) {
     // Copy cell temps over
-    memcpy(message_data[CELL_TEMP_0], modules[0].cell_temps, 8);
-    memcpy(message_data[CELL_TEMP_1], (modules[0].cell_temps + 8), 8);
-    memcpy(message_data[CELL_TEMP_2], modules[1].cell_temps, 8);
-    memcpy(message_data[CELL_TEMP_3], (modules[1].cell_temps + 8), 8);
-    memcpy(message_data[CELL_TEMP_4], modules[2].cell_temps, 8);
-    memcpy(message_data[CELL_TEMP_5], (modules[2].cell_temps + 8), 8);
-    memcpy(message_data[CELL_TEMP_6], modules[3].cell_temps, 8);
-    memcpy(message_data[CELL_TEMP_7], (modules[3].cell_temps + 8), 8);
-    memcpy(message_data[CELL_TEMP_8], modules[4].cell_temps, 8);
-    memcpy(message_data[CELL_TEMP_9], (modules[4].cell_temps + 8), 8);
-    memcpy(message_data[CELL_TEMP_10], modules[5].cell_temps, 8);
-    memcpy(message_data[CELL_TEMP_11], (modules[5].cell_temps + 8), 8);
+    memcpy(message_data[CELL_TEMP_0 - START_ITEM], modules[0].cell_temps, 8);
+    memcpy(message_data[CELL_TEMP_1 - START_ITEM], modules[1].cell_temps, 8);
+    memcpy(message_data[CELL_TEMP_2 - START_ITEM], modules[2].cell_temps, 8);
+    memcpy(message_data[CELL_TEMP_3 - START_ITEM], modules[3].cell_temps, 8);
+    memcpy(message_data[CELL_TEMP_4 - START_ITEM], modules[4].cell_temps, 8);
+    memcpy(message_data[CELL_TEMP_5 - START_ITEM], modules[5].cell_temps, 8);
 
     // Copy cell voltages over
-    memcpy(message_data[CELL_VOLTAGE_0], modules[0].cell_voltages, 8);
-    memcpy(message_data[CELL_VOLTAGE_1], (modules[0].cell_voltages + 8), 8);
-    memcpy(message_data[CELL_VOLTAGE_2], (modules[0].cell_voltages + 16), 8);
-    memcpy(message_data[CELL_VOLTAGE_3], (modules[0].cell_voltages + 24), 8);
+    memcpy(message_data[CELL_VOLTAGE_0 - START_ITEM], modules[0].cell_voltages, 8);
+    memcpy(message_data[CELL_VOLTAGE_1 - START_ITEM], (modules[0].cell_voltages + 8), 8);
 
-    memcpy(message_data[CELL_VOLTAGE_4], modules[1].cell_voltages, 8);
-    memcpy(message_data[CELL_VOLTAGE_5], (modules[1].cell_voltages + 8), 8);
-    memcpy(message_data[CELL_VOLTAGE_6], (modules[1].cell_voltages + 16), 8);
-    memcpy(message_data[CELL_VOLTAGE_7], (modules[1].cell_voltages + 24), 8);
+    memcpy(message_data[CELL_VOLTAGE_2 - START_ITEM], (modules[1].cell_voltages), 8);
+    memcpy(message_data[CELL_VOLTAGE_3 - START_ITEM], (modules[1].cell_voltages + 8), 8);
+    
+    memcpy(message_data[CELL_VOLTAGE_4 - START_ITEM], modules[2].cell_voltages, 8);
+    memcpy(message_data[CELL_VOLTAGE_5 - START_ITEM], (modules[2].cell_voltages + 8), 8);
 
-    memcpy(message_data[CELL_VOLTAGE_8], modules[2].cell_voltages, 8);
-    memcpy(message_data[CELL_VOLTAGE_9], (modules[2].cell_voltages + 8), 8);
-    memcpy(message_data[CELL_VOLTAGE_10], (modules[2].cell_voltages + 16), 8);
-    memcpy(message_data[CELL_VOLTAGE_11], (modules[2].cell_voltages + 24), 8);
+    memcpy(message_data[CELL_VOLTAGE_6 - START_ITEM], (modules[3].cell_voltages), 8);
+    memcpy(message_data[CELL_VOLTAGE_7 - START_ITEM], (modules[3].cell_voltages + 8), 8);
+    
+    memcpy(message_data[CELL_VOLTAGE_8 - START_ITEM], modules[4].cell_voltages, 8);
+    memcpy(message_data[CELL_VOLTAGE_9 - START_ITEM], (modules[4].cell_voltages + 8), 8);
 
-    memcpy(message_data[CELL_VOLTAGE_12], modules[3].cell_voltages, 8);
-    memcpy(message_data[CELL_VOLTAGE_13], (modules[3].cell_voltages + 8), 8);
-    memcpy(message_data[CELL_VOLTAGE_14], (modules[3].cell_voltages + 16), 8);
-    memcpy(message_data[CELL_VOLTAGE_15], (modules[3].cell_voltages + 24), 8);
+    memcpy(message_data[CELL_VOLTAGE_10 - START_ITEM], (modules[5].cell_voltages), 8);
+    memcpy(message_data[CELL_VOLTAGE_11 - START_ITEM], (modules[5].cell_voltages + 8), 8);
 
-    memcpy(message_data[CELL_VOLTAGE_16], modules[4].cell_voltages, 8);
-    memcpy(message_data[CELL_VOLTAGE_17], (modules[4].cell_voltages + 8), 8);
-    memcpy(message_data[CELL_VOLTAGE_18], (modules[4].cell_voltages + 16), 8);
-    memcpy(message_data[CELL_VOLTAGE_19], (modules[4].cell_voltages + 24), 8);
+    float_t pack_voltage = sum_voltages(modules);
+    uint16_t pack_voltage_scaled = floor(pack_voltage * 10);
+    // Serial.println(pack_voltage);
 
-    memcpy(message_data[CELL_VOLTAGE_20], modules[5].cell_voltages, 8);
-    memcpy(message_data[CELL_VOLTAGE_21], (modules[5].cell_voltages + 8), 8);
-    memcpy(message_data[CELL_VOLTAGE_22], (modules[5].cell_voltages + 16), 8);
-    memcpy(message_data[CELL_VOLTAGE_23], (modules[5].cell_voltages + 24), 8);
+    uint8_t soc = calc_soc(pack_voltage_scaled) * 2;
 
-    CanMsg msg;
-    for (uint16_t addr = START_ITEM; addr < LAST_ITEM; addr++) {
-        msg = CanMsg(addr, sizeof(message_data[addr]), message_data[addr]);
-        CAN.write(msg);
+    memcpy(message_data[LAST_ITEM + 1] + 3, &pack_voltage_scaled, 2);
+    memcpy(message_data[LAST_ITEM + 1] + 5, &soc, 1);
+
+    uint16_t cell_temps = calc_min_max_temp(modules);
+
+    memcpy(message_data[LAST_ITEM + 2] + 5, &cell_temps, 2);
+
+    uint32_t min_max_cell_volts = calc_min_max_volts(modules);
+
+    memcpy(message_data[LAST_ITEM + 3] + 1, &min_max_cell_volts, 4);
+    // Serial.println(min_max_cell_volts & 0xFFFF);
+
+
+
+    for(uint32_t addr = START_ITEM; addr < LAST_ITEM; addr++){
+        // memcpy((void *)(msg_data), &message_data[addr], sizeof(message_data[addr]));
+        // Serial.println(addr);
+        // *msg = CanMsg(0x400, sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]);
+
+        int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]));
+        if(!(ret == 0 || ret == 1)){
+        Serial.print("CAN Error: ");
+        Serial.println(ret);
+        CAN.clearError();
+        break;
+        }
+        delay(5);
+        // Serial.println(ret);
+    }
+
+    for(uint32_t addr = ORION_MSG_1; addr <= ORION_MSG_3; addr++){
+        int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]), message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]));
+        if(!(ret == 0 || ret == 1)){
+        Serial.print("CAN Error: ");
+        Serial.println(ret);
+        CAN.clearError();
+        break;
+        }
+        delay(5);
     }
 }
+
 
 void printResponseFrameForDebug() {
     Serial.print("PROT: ");
@@ -192,14 +165,11 @@ void printResponseFrameForDebug() {
 }
 
 bool establishConnection() {
-    // Do we need wifi?
-    // status = WiFi.beginAP(ssid, pass);
-    // WiFi.config(IPAddress(192,168,244,1));
-
     Serial.begin(9600);
+    Serial.setTimeout(500);
     Serial1.begin(BAUDRATE, SERIAL_8N1);
     Serial1.setTimeout(1000);
-    CAN.begin(CanBitRate::BR_1000k);
+    CAN.begin(CanBitRate::BR_250k);
 
     return true;
 }
@@ -215,10 +185,12 @@ void bootCommands() {
     // Run Boot commands
 
     Wake79616();
-    delayMicroseconds(
-        (10000 + 520) *
-        TOTALBOARDS);  // 2.2ms from shutdown/POR to active mode + 520us till
+    delayMicroseconds((10000 + 520) * TOTALBOARDS);  // 2.2ms from shutdown/POR to active mode + 520us till
     // device can send wake tone, PER DEVICE
+
+    WakeStack();
+    delayMicroseconds((10000 + 520) * TOTALBOARDS); // 2.2ms from shutdown/POR to active mode + 520us till device can send wake tone, PER DEVICE
+    Serial.print("Stack is Woken up\r\n");
 
     AutoAddress();
     Serial.println("Autoaddress Completed");
@@ -228,13 +200,8 @@ void bootCommands() {
     // clear the write buffer
     memset(UDP_Buffer, 0, sizeof(UDP_Buffer));
     memset(response_frame_current, 0, sizeof(response_frame_current));
-    memset(temp_response_frame, 0, sizeof(temp_response_frame));
-    memset(voltage_response_frame, 0, sizeof(voltage_response_frame));
-    memset(message_data, 0,
-           sizeof(message_data[0][0]) * message_data_width * 8);
+    memset(message_data, 0, sizeof(message_data[0][0]) * message_data_width * 8);
 
-    udp.begin(IPAddress(192, 168, 244, 1), 10000);
-    udp.setTimeout(10);
     startup_done = true;
 }
 
@@ -242,21 +209,18 @@ bool optimalValuesAchieved() { return false; }
 
 void runCellBalancing() {
     // Run cell balancing
-    Serial.println("Running CB");
-    WriteReg(0, BAL_CTRL2, 0x33, 1,
-             FRMWRT_ALL_W);  // starts balancing all cells
-
-    if (OVUV_fault) {
-        WriteReg(0, FAULT_RST1, 0x18, 1, FRMWRT_ALL_W);  // reset fault
+    // First Check CB state, if not cb, start, otherwise check
+    if(pin_status & 0x2){
+        Serial.println("Starting CB");
+        WriteReg(0, BAL_CTRL2, 0x33, 1, FRMWRT_STK_W);  // starts balancing all cells
+        endCellBalancing = true;
     }
+    lastMillis = millis();
 
-    if (OTUT_fault) {
-        WriteReg(0, FAULT_RST1, 0x60, 1, FRMWRT_ALL_W);  // reset fault
-    }
 }
 
 void initialAction() {
-    std::cout << "Initial!\n";
+    Serial.println(comm_fault);
 
     // Establish communications
     if (establishConnection()) {
@@ -273,10 +237,11 @@ FSM_STATE initialTransition() {
 }
 
 void startupAction() {
-    std::cout << "Startup!\n";
     if (communicationsOnOff) {
         // Write registers to the device
         bootCommands();
+        delay(500);
+        startup_done = true;
     }
 }
 
@@ -292,120 +257,82 @@ FSM_STATE startupTransition() {
 
 void normalOpAction() {
     if (readyToRun) {
-        delay(500);
 
-        n_fault = !digitalRead(NFAULT_PIN);
+        WriteReg(0, OVUV_CTRL, 0x05, 1, FRMWRT_STK_W);  // run OV UV checks
+        WriteReg(0, OTUT_CTRL, 0x05, 1, FRMWRT_STK_W);  // run OT UT checks
 
-        if (comm_fault) {
-            Serial.println("Communications Fault");
-            restart_chips();
+        //printResponseFrameForDebug();
+
+        read_faults(modules);
+
+        OVUV_fault = false;
+        OTUT_fault = false;
+
+        if (OVUV_fault) {
+            WriteReg(0, FAULT_RST1, 0x18, 1, FRMWRT_STK_W);  // reset fault
         }
-        else {
-            WriteReg(0, OVUV_CTRL, 0x05, 1, FRMWRT_ALL_W);  // run OV UV
-            WriteReg(0, OTUT_CTRL, 0x05, 1, FRMWRT_ALL_W);  // run OT UT
-            ReadReg(0, FAULT_SUMMARY, response_frame_current, 1, 0,
-                    FRMWRT_ALL_R);  // 175 us
 
-            printResponseFrameForDebug();
+        if (OTUT_fault) {
+            WriteReg(0, FAULT_RST1, 0x60, 1, FRMWRT_STK_W);  // reset fault
+        }
 
-            OVUV_fault = ((response_frame_current[4] & 0x04) ? true : false);
-            OTUT_fault = ((response_frame_current[4] & 0x08) ? true : false);
-
-            // VOLTAGE SENSE (EVERY 9ms, so every 5 loops of 2ms each)
-            ReadReg(0, VCELL16_HI + (16 - ACTIVECHANNELS) * 2,
-                    voltage_response_frame, ACTIVECHANNELS * 2, 0,
-                    FRMWRT_ALL_R);  // 494 us
-
-            for (uint16_t cb = 0;
-                 cb < (BRIDGEDEVICE == 1 ? TOTALBOARDS - 1 : TOTALBOARDS);
-                 cb++) {
-                printConsole("B%d voltages: ", TOTALBOARDS - cb - 1);
-                for (int i = 0; i < ACTIVECHANNELS; i++) {
-                    int boardcharStart = (ACTIVECHANNELS * 2 + 6) * cb;
-                    raw_data =
-                        (((voltage_response_frame[boardcharStart + (i * 2) +
-                           4] &
-                           0xFF)
-                          << 8) |
-                         (voltage_response_frame[boardcharStart + (i * 2) + 5] &
-                          0xFF));
-                    modules[cb].cell_voltages[i] =
-                        (uint16_t)(Complement(raw_data, 0.19073));
-                    if (i != 15) {
-                        printConsole("%.3f, ",
-                                     modules[cb].cell_voltages[i] / 1000.0);
-                    }
-                    else {
-                        printConsole("%.3f",
-                                     modules[cb].cell_voltages[i] / 1000.0);
-                    }
-                }
-                printConsole("\n\r");  // newline per board
+        for (int i = 0; i < STACK_DEVICES; i++) {
+            if (modules[i].faults & 0x01 || modules[i].faults & 0x02) {
+                OVUV_fault = true;
             }
-
-            // VOLTAGE SENSE (EVERY 9ms, so every 5 loops of 2ms each)
-            ReadReg(0, GPIO1_HI, temp_response_frame, CELL_TEMP_NUM * 2, 0,
-                    FRMWRT_ALL_R);  // 494 us
-            uint16_t temp_voltage = 0;
-            for (uint16_t cb = 0;
-                 cb < (BRIDGEDEVICE == 1 ? TOTALBOARDS - 1 : TOTALBOARDS);
-                 cb++) {
-                printConsole("B%d temps: ", TOTALBOARDS - cb - 1);
-                for (int i = 0; i < CELL_TEMP_NUM; i++) {
-                    int bart = (CELL_TEMP_NUM * 2 + 6) * cb;
-                    raw_data =
-                        ((temp_response_frame[boardcharStart + (i * 2) + 4] &
-                          0xFF)
-                         << 8) |
-                        (temp_response_frame[boardcharStart + (i * 2) + 5] &
-                         0xFF);
-                    temp_voltage = (uint16_t)(raw_data * 0.15259);
-                    if (temp_voltage >= 4800) {
-                        modules[cb].cell_temps[i] = 1000;
-                    }
-                    else {
-                        modules[cb].cell_temps[i] =
-                            (uint16_t)(GET_TEMP(GET_RESISTANCE(
-                                (temp_voltage / 1000.0))) *
-                                10);
-                    }
-                    printConsole("%.1f, ", modules[cb].cell_temps[i] / 10.0);
-                }
-                printConsole("\n\r");  // newline per board
-            }
-
-            send_udp_packet();
-
-            send_can_data();
-
-            if (millis() - lastMillis >= 30 * 1000UL && !OVUV_fault &&
-                !OTUT_fault) {
-                lastMillis = millis();  // get ready for the next iteration
-                runCellBalancing();
+            if (modules[i].faults & 0x03 || modules[i].faults & 0x04) {
+                OTUT_fault = true;
             }
         }
+        memset(&pin_status, 0, 1);
+        pin_status = read_signal_pins(); // bits 0 -> nfault, 1 -> IMD_STATUS, 2 -> POS_AIR, 3 -> NEG_AIR
+
+
+        read_cell_voltages(modules);
+        read_cell_temps(modules);
+        read_die_temps(modules);
+
+        send_can_data();
+
+        // if (millis() - lastMillis >= 30 * 1000UL && !(OVUV_fault || OTUT_fault)) {
+        //     lastMillis = millis();  // get ready for the next iteration
+        //     runCellBalancing();
+        // }  
+
+        printBatteryCellVoltages(modules);
     }
 }
 
 FSM_STATE normalOpTransition() {
-    if (bms_fault || comm_fault || n_fault || OVUV_fault ||
-        OTUT_fault) {
+
+    if (comm_fault) {
+        Serial.print("COMM Fault");
         digitalWrite(FAULT_PIN, LOW);
-        Serial.println("Fault Detected");
-        // delay(5000);
-        // HERE: need to switch to appropriate FAULT STATE by returning.
-        if (comm_fault) {
-            return FAULT_COMM;
-        }
-        else if (OVUV_fault || OTUT_fault) {
-            return FAULT_TMPVOLT;
-        }
-        else if (bms_fault || n_fault) {
-            return FAULT_UNEXPECTED;
-        }
+        return FAULT_COMM;
+    }
+    else if(OTUT_fault &&  millis() - temp_fault_timer > 5 * 1000UL){
+        Serial.print("OTUT Fault");
+        digitalWrite(FAULT_PIN, LOW);
+        return NORMALOP;
+    }
+    else if(OVUV_fault &&  millis() - temp_fault_timer > 5 * 1000UL){
+        Serial.print("OVOT Fault");
+        digitalWrite(FAULT_PIN, LOW);
+        return NORMALOP;
+    }
+    else if(n_fault &&  millis() - n_fault_timer > 5 * 1000UL){
+        Serial.print("N Fault");
+        digitalWrite(FAULT_PIN, LOW);
+        return NORMALOP;
+    }
+    else if(millis() - lastMillis >= 30 * 1000UL){
+            return CELL_BALANCE;
     }
     else {
         digitalWrite(FAULT_PIN, HIGH);
+        n_fault_timer = millis();
+        temp_fault_timer = millis();
+        voltage_fault_timer = millis(); //reset fault timers if there are no faults
         return NORMALOP;
     }
 }
@@ -421,8 +348,11 @@ void unexpectedFaultAction() {
 FSM_STATE unexpectedFaultTransition() { return INITIAL; }
 
 void commFaultAction() {
+    Serial.println(comm_fault);
+    Serial.println("Comm fault action");
     Serial.println("Communications Fault");
-    restart_chips();
+    delay(1000);
+    bootCommands();
     fault_pin = 0;
 }
 

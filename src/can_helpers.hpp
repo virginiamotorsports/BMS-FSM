@@ -50,35 +50,58 @@ enum CAN_Msgs
     LAST_ITEM
 };
 
+#define ORION_MSG_1 0x6B0 
+/*
+Signal Start_bit Length_[bit] Value_Type Factor Offset Min Max
+Pack_Current 8 16 Signed 0.1 0 -32768 3276.7
+Pack_Inst_Voltage 24 16 Unsigned 0.1 0 0 6553.5
+Pack_SOC 32 8 Unsigned 0.5 0 0 127.5
+MPI2_State 40 1 Unsigned 1 0 0 1
+MPI3_State 41 1 Unsigned 1 0 0 1
+MPO2_State 43 1 Unsigned 1 0 0 1
+MPO3_State 44 1 Unsigned 1 0 0 1
+MPO4_State 45 1 Unsigned 1 0 0 1
+MP_Enable_State 46 1 Unsigned 1 0 0 1
+MPO1_State 47 1 Unsigned 1 0 0 1
+Discharge_Relay_State 48 1 Unsigned 1 0 0 1
+Charge_Relay_State 49 1 Unsigned 1 0 0 1
+Charger_Safety_State 50 1 Unsigned 1 0 0 1
+MIL_State 51 1 Unsigned 1 0 0 1
+MPI1_State 52 1 Unsigned 1 0 0 1
+AlwaysOn_State 53 1 Unsigned 1 0 0 1
+Is_Ready_State 54 1 Unsigned 1 0 0 1
+Is_Charging_State 55 1 Unsigned 1 0 0 1
+*/
+
+#define ORION_MSG_2 0x6B1
+/*
+Signal Start_bit Length_[bit] Value_Type Factor Offset Min Max
+Pack_DCL 8 16 Unsigned 1 0 0 65535
+Pack_CCL 16 8 Unsigned 1 0 0 255
+Pack_High_Temp 32 8 Signed 1 0 -128 127
+Pack_Low_Temp 40 8 Signed 1 0 -128 127
+*/
+
+
+#define ORION_MSG_3 0x6B2
+/*
+Signal Start_bit Length_[bit] Value_Type Factor Offset Min Max
+Low_Cell_Voltage 8 16 Unsigned 0.0001 0 0 6.5535
+High_Cell_Voltage 24 16 Unsigned 0.0001 0 0 6.5535
+*/
+
 
 const uint8_t message_data_width = LAST_ITEM - STATUS;
-uint8_t message_data[message_data_width][8];
 
 
 //Methods to convert the integers into bytes to be sent via canbus
-char* int_to_bytes(uint32_t input){
-    char bytes[4] = {((input >> 24) & 0xFF), ((input >> 16) & 0xFF), ((input >> 8) & 0xFF), (input & 0xFF)};
+char* int_to_bytes(uint32_t input);
 
-    return bytes;
-}
+char* int_to_bytes(uint16_t input);
 
-char* int_to_bytes(uint16_t input){
-    char bytes[2] = {((input >> 16) & 0xFF), (input & 0xFF)};
+char* float_to_4bytes(float input);
 
-    return bytes;
-}
-
-char* float_to_4bytes(float input){
-    uint32_t integer_from_float = round(input * 100);
-
-    return int_to_bytes(integer_from_float);
-}
-
-char* float_to_2bytes(float input){
-    uint16_t integer_from_float = round(input * 100);
-
-    return int_to_bytes(integer_from_float);
-}
+char* float_to_2bytes(float input);
 
 
 #endif
