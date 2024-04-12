@@ -35,7 +35,7 @@ void loop() {
     // Serial.println(nextState);
     // Serial.println(uint32_t(&normalOpTransition));
 
-    loop_counter++; // This will be used for tasks we decide are periodic such that we can run the state action items async from the update timer
+    loop_counter++; // This will be used for tasks we decide are . such that we can run the state action items async from the update timer
     if(loop_counter == 10){
         loop_counter = 0;
     }
