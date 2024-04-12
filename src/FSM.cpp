@@ -306,7 +306,7 @@ void normalOpAction() {
             ReadReg(0, FAULT_SUMMARY, response_frame_current, 1, 0,
                     FRMWRT_ALL_R);  // 175 us
 
-            // printResponseFrameForDebug();
+            printResponseFrameForDebug();
 
             OVUV_fault = ((response_frame_current[4] & 0x04) ? true : false);
             OTUT_fault = ((response_frame_current[4] & 0x08) ? true : false);
@@ -352,7 +352,7 @@ void normalOpAction() {
                  cb++) {
                 printConsole("B%d temps: ", TOTALBOARDS - cb - 1);
                 for (int i = 0; i < CELL_TEMP_NUM; i++) {
-                    int boardcharStart = (CELL_TEMP_NUM * 2 + 6) * cb;
+                    int bart = (CELL_TEMP_NUM * 2 + 6) * cb;
                     raw_data =
                         ((temp_response_frame[boardcharStart + (i * 2) + 4] &
                           0xFF)
