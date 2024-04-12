@@ -22,10 +22,8 @@ bool OTUT_fault = false;
 
 int32_t signed_val = 0;
 long double sr_val = 0;
-// char voltage_response_frame[(16 * 2 + 6) *
-// TOTALBOARDS];  // hold all 16 vcell*_hi/lo values
-// char temp_response_frame[(8 * 2 + 6) *
-// TOTALBOARDS];  // hold all 16 vcell*_hi/lo values
+char voltage_response_frame[(16 * 2 + 6) * TOTALBOARDS];  // hold all 16 vcell*_hi/lo values
+char temp_response_frame[(8 * 2 + 6) * TOTALBOARDS];  // hold all 16 vcell*_hi/lo values
 char response_frame_current[(1 + 6)];   //
 
 bool communicationsOnOff = false;
@@ -201,6 +199,9 @@ void bootCommands() {
     memset(UDP_Buffer, 0, sizeof(UDP_Buffer));
     memset(response_frame_current, 0, sizeof(response_frame_current));
     memset(message_data, 0, sizeof(message_data[0][0]) * message_data_width * 8);
+    memset(response_frame_current, 0, sizeof(response_frame_current));
+    memset(temp_response_frame, 0, sizeof(temp_response_frame));
+    memset(voltage_response_frame, 0, sizeof(voltage_response_frame));
 
     startup_done = true;
 }
