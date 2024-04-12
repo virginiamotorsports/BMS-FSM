@@ -190,7 +190,7 @@ void bootCommands() {
 
     WakeStack();
     delayMicroseconds((10000 + 520) * TOTALBOARDS); // 2.2ms from shutdown/POR to active mode + 520us till device can send wake tone, PER DEVICE
-    Serial.print("Stack is Woken up\r\n");
+    Serial.println("Stack is Woken up\r\n");
 
     AutoAddress();
     Serial.println("Autoaddress Completed");
