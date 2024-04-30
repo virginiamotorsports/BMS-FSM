@@ -33,12 +33,12 @@
 #include "B0_reg.h"
 
 // User defines
-#define TOTALBOARDS 4     //boards in stack
+#define TOTALBOARDS 7     //boards in stack
 #define STACK_DEVICES (TOTALBOARDS-BRIDGEDEVICE)
 #define CELL_TEMP_NUM 8
 #define ACTIVECHANNELS 16   //channels to activate (incomplete, does not work right now)
 #define BRIDGEDEVICE 1   //
-#define MAXcharS (16*2)     //maximum number of chars to be read from the devices (for array creation)
+#define MAXcharS (16*4)     //maximum number of chars to be read from the devices (for array creation)
 #define BAUDRATE 1000000    //device + uC baudrate
 
 #define FRMWRT_SGL_R	0x00    //single device READ

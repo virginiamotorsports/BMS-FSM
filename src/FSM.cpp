@@ -22,8 +22,8 @@ bool OTUT_fault = false;
 
 int32_t signed_val = 0;
 long double sr_val = 0;
-char voltage_response_frame[(16 * 2 + 6) * TOTALBOARDS];  // hold all 16 vcell*_hi/lo values
-char temp_response_frame[(8 * 2 + 6) * TOTALBOARDS];  // hold all 16 vcell*_hi/lo values
+char voltage_response_frame[(16 * 2 + 6) * STACK_DEVICES];  // hold all 16 vcell*_hi/lo values
+char temp_response_frame[(8 * 2 + 6) * STACK_DEVICES];  // hold all 16 vcell*_hi/lo values
 char response_frame_current[(1 + 6)];   //
 
 bool communicationsOnOff = false;
@@ -199,7 +199,6 @@ void bootCommands() {
     memset(UDP_Buffer, 0, sizeof(UDP_Buffer));
     memset(response_frame_current, 0, sizeof(response_frame_current));
     memset(message_data, 0, sizeof(message_data[0][0]) * message_data_width * 8);
-    memset(response_frame_current, 0, sizeof(response_frame_current));
     memset(temp_response_frame, 0, sizeof(temp_response_frame));
     memset(voltage_response_frame, 0, sizeof(voltage_response_frame));
 
@@ -214,6 +213,9 @@ void runCellBalancing() {
     if(pin_status & 0x2){
         Serial.println("Starting CB");
         WriteReg(0, BAL_CTRL2, 0x33, 1, FRMWRT_STK_W);  // starts balancing all cells
+        endCellBalancing = true;
+    }
+    else{
         endCellBalancing = true;
     }
     lastMillis = millis();
@@ -266,8 +268,6 @@ void normalOpAction() {
 
         read_faults(modules);
 
-        OVUV_fault = false;
-        OTUT_fault = false;
 
         if (OVUV_fault) {
             WriteReg(0, FAULT_RST1, 0x18, 1, FRMWRT_STK_W);  // reset fault
@@ -277,23 +277,27 @@ void normalOpAction() {
             WriteReg(0, FAULT_RST1, 0x60, 1, FRMWRT_STK_W);  // reset fault
         }
 
+        OVUV_fault = false;
+        OTUT_fault = false;
+
         for (int i = 0; i < STACK_DEVICES; i++) {
-            if (modules[i].faults & 0x01 || modules[i].faults & 0x02) {
+            if (modules[i].faults & 0x04) {
                 OVUV_fault = true;
             }
-            if (modules[i].faults & 0x03 || modules[i].faults & 0x04) {
+            if (modules[i].faults & 0x08) {
                 OTUT_fault = true;
             }
         }
+        
         memset(&pin_status, 0, 1);
         pin_status = read_signal_pins(); // bits 0 -> nfault, 1 -> IMD_STATUS, 2 -> POS_AIR, 3 -> NEG_AIR
 
 
         read_cell_voltages(modules);
         read_cell_temps(modules);
-        read_die_temps(modules);
+        // read_die_temps(modules);
 
-        send_can_data();
+        // send_can_data();
 
         // if (millis() - lastMillis >= 30 * 1000UL && !(OVUV_fault || OTUT_fault)) {
         //     lastMillis = millis();  // get ready for the next iteration
@@ -301,28 +305,29 @@ void normalOpAction() {
         // }  
 
         printBatteryCellVoltages(modules);
+        printBatteryCellTemps(modules);
     }
 }
 
 FSM_STATE normalOpTransition() {
 
     if (comm_fault) {
-        Serial.print("COMM Fault");
+        Serial.println("COMM Fault");
         digitalWrite(FAULT_PIN, LOW);
         return FAULT_COMM;
     }
     else if(OTUT_fault &&  millis() - temp_fault_timer > 5 * 1000UL){
-        Serial.print("OTUT Fault");
+        Serial.println("OTUT Fault");
         digitalWrite(FAULT_PIN, LOW);
         return NORMALOP;
     }
-    else if(OVUV_fault &&  millis() - temp_fault_timer > 5 * 1000UL){
-        Serial.print("OVOT Fault");
+    else if(OVUV_fault &&  millis() - voltage_fault_timer > 5 * 1000UL){
+        Serial.println("OVUV Fault");
         digitalWrite(FAULT_PIN, LOW);
         return NORMALOP;
     }
     else if(n_fault &&  millis() - n_fault_timer > 5 * 1000UL){
-        Serial.print("N Fault");
+        Serial.println("N Fault");
         digitalWrite(FAULT_PIN, LOW);
         return NORMALOP;
     }
@@ -332,8 +337,12 @@ FSM_STATE normalOpTransition() {
     else {
         digitalWrite(FAULT_PIN, HIGH);
         n_fault_timer = millis();
-        temp_fault_timer = millis();
+        if(!OTUT_fault){
+            temp_fault_timer = millis();
+        }
+        if(!OVUV_fault){
         voltage_fault_timer = millis(); //reset fault timers if there are no faults
+        }
         return NORMALOP;
     }
 }

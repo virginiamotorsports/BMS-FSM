@@ -16,7 +16,7 @@ void read_cell_voltages(BMS_status * modules){
     uint16_t raw_data = 0;
 
     // VOLTAGE SENSE (EVERY 9ms, so every 5 loops of 2ms each)
-    ReadReg(0, VCELL16_HI + (16 - ACTIVECHANNELS) * 2, voltage_response_frame, ACTIVECHANNELS * 2, 0, FRMWRT_STK_R); // 494 us
+    ReadReg(0, VCELL16_HI + ((16 - ACTIVECHANNELS) * 2), voltage_response_frame, ACTIVECHANNELS * 2, 0, FRMWRT_STK_R); // 494 us
 
     for (uint16_t cb = 0; cb < STACK_DEVICES; cb++)
     {
@@ -177,6 +177,23 @@ void printBatteryCellVoltages(BMS_status * modules) {
             // Print the untransformed voltage
             Serial.print("\t");
             Serial.print(voltage, 2); // Print with 2 decimal places
+        }
+        Serial.println(); // Move to the next line for the next pack
+    }
+}
+
+void printBatteryCellTemps(BMS_status * modules) {
+
+    for (int i = 0; i < 6; i++) {
+        Serial.print("Pack ");
+        Serial.print(i+1);
+        for (size_t j = 0; j < 8; j++) {
+            // Untransform the value
+            uint8_t temp = modules[i].cell_temps[j];
+            
+            // Print the untransformed voltage
+            Serial.print("\t");
+            Serial.print(temp); // Print with 2 decimal places
         }
         Serial.println(); // Move to the next line for the next pack
     }

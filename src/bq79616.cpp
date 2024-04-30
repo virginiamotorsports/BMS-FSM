@@ -28,7 +28,7 @@ char bReturn = 0;
 int bRes = 0;
 int count = 10000;
 char bBuf[8];
-char pFrame[64];
+char pFrame[400];
 static volatile unsigned int delayval = 0; //for delay and delayMicroseconds functions
 extern int UART_RX_RDY;
 extern int RTI_TIMEOUT;
@@ -497,10 +497,12 @@ int ReadReg(char bID, uint16_t wAddr, char * pData, char bLen, uint32_t dwTimeOu
         memset(pData, 0, sizeof(pData));
         // sciEnableNotification(sciREG, SCI_RX_INT);
         // sciReceive(sciREG, (bLen + 6) * (TOTALBOARDS - 1), pData);
-        Serial1.readBytes(pData, (bLen + 6) * (TOTALBOARDS - 1));
+        Serial1.readBytes(pData, (bLen + 6) * STACK_DEVICES);
         // while(UART_RX_RDY == 0U && count>0) count--; /* Wait */
         // UART_RX_RDY = 0;
-        bRes = (bLen + 6) * (TOTALBOARDS - 1);
+        bRes = (bLen + 6) * STACK_DEVICES;
+        return bRes;
+        // Serial.print(bRes);
     } else if (bWriteType == FRMWRT_ALL_R) {
         bRes = ReadFrameReq(bID, wAddr, bLen, bWriteType);
         memset(pData, 0, sizeof(pData));
@@ -549,8 +551,9 @@ int ReadReg(char bID, uint16_t wAddr, char * pData, char bLen, uint32_t dwTimeOu
     }
 
     if(bad){
-        // restart_chips();
-        Serial.println("BAD CRC");
+        if(DEBUG){
+            Serial.println("BAD CRC");
+        }
 
     }
 
