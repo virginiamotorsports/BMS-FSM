@@ -316,9 +316,9 @@ void normalOpAction() {
 
         read_cell_voltages(modules);
         read_cell_temps(modules);
-        read_die_temps(modules);
+        // read_die_temps(modules);
 
-        send_can_data();
+        // send_can_data();
 
         if(DEBUG){
             printBatteryCellVoltages(modules);

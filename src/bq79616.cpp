@@ -508,7 +508,6 @@ int ReadReg(char bID, uint16_t wAddr, char * pData, char bLen, uint32_t dwTimeOu
         // while(UART_RX_RDY == 0U && count>0) count--; /* Wait */
         // UART_RX_RDY = 0;
         bRes = (bLen + 6) * STACK_DEVICES;
-        return bRes;
         // Serial.print(bRes);
     } else if (bWriteType == FRMWRT_ALL_R) {
         bRes = ReadFrameReq(bID, wAddr, bLen, bWriteType);
@@ -531,6 +530,9 @@ int ReadReg(char bID, uint16_t wAddr, char * pData, char bLen, uint32_t dwTimeOu
     else{
         comm_fault = false;
     }
+
+    if(bWriteType == FRMWRT_STK_R)
+        return bRes;
 
     // CHECK IF CRC IS CORRECT
     bool bad = false;
