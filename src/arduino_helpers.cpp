@@ -83,21 +83,11 @@ void read_die_temps(BMS_status * modules){
     uint16_t temp_voltage = 0;
     for (uint16_t cb = 0; cb < STACK_DEVICES; cb++)
     {
-    // printConsole("B%d temps:\t", TOTALBOARDS - cb - 1);
-    for (int i = 0; i < CELL_TEMP_NUM; i++)
-    {
-        int boardcharStart = (CELL_TEMP_NUM * 2 + 6) * cb;
-        raw_data = ((die_temp_response_frame[boardcharStart + (i * 2) + 4] & 0xFF) << 8) | (die_temp_response_frame[boardcharStart + (i * 2) + 5] & 0xFF);
-        temp_voltage = (uint16_t)(raw_data * 0.15259);
-        if(temp_voltage >= 4800)
-        {
-        modules[cb].cell_temps[i] = 255;
-        }
-        else{
-        modules[cb].cell_temps[i] = (uint8_t)((uint16_t)(GET_TEMP(GET_RESISTANCE((temp_voltage / 1000.0)))));
-        }
+        raw_data = ((die_temp_response_frame[4] & 0xFF) << 8) | (die_temp_response_frame[5] & 0xFF); //The data is stored in index 4 and 5 because the first is the packet init byte, then dev addr byte, then 2 for the register address, then the data we want, then at the end the CRC
+        temp_voltage = (uint16_t)(raw_data * 0.025);
+        modules[cb].die_temp = (uint8_t) temp_voltage;
         // printConsole("%i ", modules[cb].cell_temps[i]);
-    }
+    
     // printConsole("\n\r"); // newline per board
     }
 

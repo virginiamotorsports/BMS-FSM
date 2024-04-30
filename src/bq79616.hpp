@@ -33,6 +33,7 @@
 #include "B0_reg.h"
 
 // User defines
+#define DEBUG true
 #define TOTALBOARDS 7     //boards in stack
 #define STACK_DEVICES (TOTALBOARDS-BRIDGEDEVICE)
 #define CELL_TEMP_NUM 8

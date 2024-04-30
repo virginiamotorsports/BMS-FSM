@@ -13,7 +13,6 @@
  **
  ******************************************************************************/
 #include "bq79616.hpp"
-#define DEBUG true
 
 extern bool comm_fault;
 
@@ -141,7 +140,9 @@ void restart_chips(void){
     delay(20);
     // AutoAddress();
     // AutoAddress2();
-    Serial.println("Autoaddress Completed");
+    if(DEBUG){
+        Serial.println("Autoaddress Completed");
+    }
 
     set_registers();
 }
@@ -212,7 +213,9 @@ void AutoAddress()
 
     //ENABLE AUTO ADDRESSING MODE
     WriteReg(0, CONTROL1, 0X01, 1, FRMWRT_ALL_W);
-    Serial.print("Enabled auto addressing");
+    if(DEBUG){
+        Serial.print("Enabled auto addressing");
+    }
     //SET ADDRESSES FOR EVERY BOARD
     for(currentBoard=0; currentBoard<TOTALBOARDS; currentBoard++)
     {
@@ -241,7 +244,9 @@ void AutoAddress()
     ReadReg(0, OTP_ECC_DATAIN8, response_frame2, 1, 0, FRMWRT_STK_R);
     //SYNCRHONIZE THE DLL WITH A THROW-AWAY READ
     // ReadReg(0, OTP_ECC_TEST, response_frame2, 1, 0, FRMWRT_ALL_R);
-    Serial.println("After sync again");
+    if(DEBUG){
+        Serial.println("After sync again");
+    }
 
     //OPTIONAL: read back all device addresses
     for(currentBoard=0; currentBoard<TOTALBOARDS; currentBoard++)
@@ -249,7 +254,9 @@ void AutoAddress()
         ReadReg(currentBoard, DIR0_ADDR, response_frame2, 1, 0, FRMWRT_SGL_R);
         // printConsole("board %c\n", response_frame2[4]);
     }
-    Serial.print("Before fault reset");
+    if(DEBUG){
+        Serial.print("Before fault reset");
+    }
     //RESET ANY COMM FAULT CONDITIONS FROM STARTUP
     WriteReg(0, FAULT_RST2, 0x03, 1, FRMWRT_ALL_W);
 
@@ -663,7 +670,9 @@ void ResetAllFaults(char bID, char bWriteType)
     }
     else
     {
-        Serial.println("ERROR: ResetAllFaults bWriteType incorrect\n");
+        if(DEBUG){
+            Serial.println("ERROR: ResetAllFaults bWriteType incorrect\n");
+        }
     }
 }
 
@@ -683,7 +692,9 @@ void MaskAllFaults(char bID, char bWriteType)
     }
     else
     {
-        Serial.println("ERROR: MaskAllFaults bWriteType incorrect\n");
+        if(DEBUG){
+            Serial.println("ERROR: MaskAllFaults bWriteType incorrect\n");
+        }
     }
 }
 
@@ -791,7 +802,9 @@ unsigned printConsole(const char *_format, ...)
         //          HetUART1PutChar(str[k]);
         //      }
         //   }
-        Serial.print(str);
+        if(DEBUG){
+            Serial.print(str);
+        }
         //   Serial.print()
         //  sciSend(scilinREG, length, str);
 
@@ -799,10 +812,3 @@ unsigned printConsole(const char *_format, ...)
     }
     return -1;
 }
-
-//***************************
-//END MISCELLANEOUS FUNCTIONS
-//***************************
-
-//EOF
-

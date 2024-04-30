@@ -2,6 +2,7 @@
 #include "can_helpers.hpp"
 #include "arduino_helpers.hpp"
 
+
 extern uint8_t loop_counter;
 
 unsigned long lastMillis = millis();
@@ -114,10 +115,12 @@ void send_can_data(void){
 
         int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]));
         if(!(ret == 0 || ret == 1)){
-        Serial.print("CAN Error: ");
-        Serial.println(ret);
-        CAN.clearError();
-        break;
+            if(DEBUG){
+                Serial.print("CAN Error: ");
+                Serial.println(ret);
+            }
+            CAN.clearError();
+            break;
         }
         delay(5);
         // Serial.println(ret);
@@ -126,10 +129,12 @@ void send_can_data(void){
     for(uint32_t addr = ORION_MSG_1; addr <= ORION_MSG_3; addr++){
         int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]), message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]));
         if(!(ret == 0 || ret == 1)){
-        Serial.print("CAN Error: ");
-        Serial.println(ret);
-        CAN.clearError();
-        break;
+            if(DEBUG){
+                Serial.print("CAN Error: ");
+                Serial.println(ret);
+            }
+            CAN.clearError();
+            break;
         }
         delay(5);
     }
@@ -163,8 +168,14 @@ void printResponseFrameForDebug() {
 }
 
 bool establishConnection() {
-    Serial.begin(9600);
-    Serial.setTimeout(500);
+    if(DEBUG){
+        Serial.begin(9600);
+        Serial.setTimeout(500);
+    }
+    else{
+        Serial.begin(115200);
+        Serial.setTimeout(500);
+    }
     Serial1.begin(BAUDRATE, SERIAL_8N1);
     Serial1.setTimeout(1000);
     CAN.begin(CanBitRate::BR_250k);
@@ -175,7 +186,9 @@ bool establishConnection() {
 bool commEstablished() {
     // Check if comms are established
     // Maybe send / receive some data to check if comms are established
-    Serial.print("Hello this the the BMS Code\r\n");
+    if(DEBUG){
+        Serial.print("Hello this the the BMS Code\r\n");
+    }
     return false;
 }
 
@@ -188,10 +201,14 @@ void bootCommands() {
 
     WakeStack();
     delayMicroseconds((10000 + 520) * TOTALBOARDS); // 2.2ms from shutdown/POR to active mode + 520us till device can send wake tone, PER DEVICE
-    Serial.println("Stack is Woken up\r\n");
+    if(DEBUG){
+        Serial.println("Stack is Woken up\r\n");
+    }
 
     AutoAddress();
-    Serial.println("Autoaddress Completed");
+    if(DEBUG){
+        Serial.println("Autoaddress Completed");
+    }
 
     set_registers();
 
@@ -211,7 +228,9 @@ void runCellBalancing() {
     // Run cell balancing
     // First Check CB state, if not cb, start, otherwise check
     if(pin_status & 0x2){
-        Serial.println("Starting CB");
+        if(DEBUG){
+            Serial.println("Starting CB");
+        }
         WriteReg(0, BAL_CTRL2, 0x33, 1, FRMWRT_STK_W);  // starts balancing all cells
         endCellBalancing = true;
     }
@@ -223,7 +242,9 @@ void runCellBalancing() {
 }
 
 void initialAction() {
-    Serial.println(comm_fault);
+    if(DEBUG){
+        Serial.println(comm_fault);
+    }
 
     // Establish communications
     if (establishConnection()) {
@@ -295,39 +316,44 @@ void normalOpAction() {
 
         read_cell_voltages(modules);
         read_cell_temps(modules);
-        // read_die_temps(modules);
+        read_die_temps(modules);
 
-        // send_can_data();
+        send_can_data();
 
-        // if (millis() - lastMillis >= 30 * 1000UL && !(OVUV_fault || OTUT_fault)) {
-        //     lastMillis = millis();  // get ready for the next iteration
-        //     runCellBalancing();
-        // }  
-
-        printBatteryCellVoltages(modules);
-        printBatteryCellTemps(modules);
+        if(DEBUG){
+            printBatteryCellVoltages(modules);
+            printBatteryCellTemps(modules);
+        }
     }
 }
 
 FSM_STATE normalOpTransition() {
 
     if (comm_fault) {
-        Serial.println("COMM Fault");
+        if(DEBUG){
+            Serial.println("COMM Fault");
+        }
         digitalWrite(FAULT_PIN, LOW);
         return FAULT_COMM;
     }
     else if(OTUT_fault &&  millis() - temp_fault_timer > 5 * 1000UL){
-        Serial.println("OTUT Fault");
+        if(DEBUG){
+            Serial.println("OTUT Fault");
+        }
         digitalWrite(FAULT_PIN, LOW);
         return NORMALOP;
     }
     else if(OVUV_fault &&  millis() - voltage_fault_timer > 5 * 1000UL){
-        Serial.println("OVUV Fault");
+        if(DEBUG){
+            Serial.println("OVUV Fault");
+        }
         digitalWrite(FAULT_PIN, LOW);
         return NORMALOP;
     }
     else if(n_fault &&  millis() - n_fault_timer > 5 * 1000UL){
-        Serial.println("N Fault");
+        if(DEBUG){
+            Serial.println("N Fault");
+        }
         digitalWrite(FAULT_PIN, LOW);
         return NORMALOP;
     }
@@ -358,9 +384,11 @@ void unexpectedFaultAction() {
 FSM_STATE unexpectedFaultTransition() { return INITIAL; }
 
 void commFaultAction() {
-    Serial.println(comm_fault);
-    Serial.println("Comm fault action");
-    Serial.println("Communications Fault");
+    if(DEBUG){
+        Serial.println(comm_fault);
+        Serial.println("Comm fault action");
+        Serial.println("Communications Fault");
+    }
     delay(1000);
     bootCommands();
     fault_pin = 0;
