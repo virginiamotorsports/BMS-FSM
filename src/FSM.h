@@ -32,6 +32,7 @@ bool establishConnection();
 bool commEstablished();
 bool optimalValuesAchieved();
 void runCellBalancing();
+uint16_t send_can_data();
 
 void initialAction();
 FSM_STATE initialTransition();

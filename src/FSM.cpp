@@ -20,6 +20,8 @@ bool bms_fault = false;
 bool n_fault = false;
 bool OVUV_fault = false;
 bool OTUT_fault = false;
+bool ams_fault = false, imd_fault = false; // These are the latching faults
+uint16_t cell_temp;
 
 int32_t signed_val = 0;
 long double sr_val = 0;
@@ -28,7 +30,7 @@ char temp_response_frame[(8 * 2 + 6) * STACK_DEVICES];  // hold all 16 vcell*_hi
 char response_frame_current[(1 + 6)];   //
 
 bool communicationsOnOff = false;
-uint8_t pin_status;
+uint8_t pin_status, old_pin_status = 0;
 int fault_pin = true;
 bool readyToRun = false;
 bool endCellBalancing = false;
@@ -59,7 +61,7 @@ std::map<FSM_STATE, State*> state_map = {
     {FAULT_TMPVOLT, &tempVoltageFaultState},
     {FAULT_UNEXPECTED, &unexpectedFaultState} };
 
-void send_can_data(void){
+uint16_t send_can_data(void){
 
     // Copy cell temps over
     memcpy(message_data[CELL_TEMP_0 - START_ITEM], modules[0].cell_temps, 8);
@@ -138,6 +140,7 @@ void send_can_data(void){
         }
         delay(5);
     }
+    return cell_temps;
 }
 
 
@@ -309,16 +312,32 @@ void normalOpAction() {
                 OTUT_fault = true;
             }
         }
-        
+
         memset(&pin_status, 0, 1);
-        pin_status = read_signal_pins(); // bits 0 -> nfault, 1 -> IMD_STATUS, 2 -> POS_AIR, 3 -> NEG_AIR
+        pin_status = read_signal_pins(); // bits 0 -> nfault, 1 -> IMD_STATUS, 2 -> POS_AIR, 3 -> NEG_AIR, 4 -> RESET
+
+        if(((old_pin_status >> 4) & 0x1 == 0x0) && ((pin_status >> 4) & 0x1)){
+            ams_fault = false;
+            imd_fault = false;
+        }
+
+        if((pin_status >> 1) & 0x1 == 0x0){
+            imd_fault == true;
+        }
 
 
         read_cell_voltages(modules);
         read_cell_temps(modules);
         // read_die_temps(modules);
 
-        // send_can_data();
+        cell_temp = send_can_data();
+
+        if((cell_temp >> 8) > 40){
+            digitalWrite(FAN_PIN, HIGH); // Fan control code, turn on the fan if too hot, off if too cold but make sure there is some overlap to prevent oscilations 
+        }
+        else if((cell_temp >> 8) < 37){
+            digitalWrite(FAN_PIN, LOW);
+        }
 
         if(DEBUG){
             printBatteryCellVoltages(modules);
@@ -333,35 +352,39 @@ FSM_STATE normalOpTransition() {
         if(DEBUG){
             Serial.println("COMM Fault");
         }
-        digitalWrite(FAULT_PIN, LOW);
+        digitalWrite(AMS_FAULT_PIN, LOW);
+        ams_fault = true;
         return FAULT_COMM;
     }
     else if(OTUT_fault &&  millis() - temp_fault_timer > 5 * 1000UL){
         if(DEBUG){
             Serial.println("OTUT Fault");
         }
-        digitalWrite(FAULT_PIN, LOW);
+        digitalWrite(AMS_FAULT_PIN, LOW);
+        ams_fault = true;
         return NORMALOP;
     }
     else if(OVUV_fault &&  millis() - voltage_fault_timer > 5 * 1000UL){
         if(DEBUG){
             Serial.println("OVUV Fault");
         }
-        digitalWrite(FAULT_PIN, LOW);
+        digitalWrite(AMS_FAULT_PIN, LOW);
+        ams_fault = true;
         return NORMALOP;
     }
-    else if(n_fault &&  millis() - n_fault_timer > 5 * 1000UL){
-        if(DEBUG){
-            Serial.println("N Fault");
-        }
-        digitalWrite(FAULT_PIN, LOW);
-        return NORMALOP;
-    }
+    // else if(n_fault &&  millis() - n_fault_timer > 5 * 1000UL){
+    //     if(DEBUG){
+    //         Serial.println("N Fault");
+    //     }
+    //     digitalWrite(AMS_FAULT_PIN, LOW);
+    //     ams_fault = true;
+    //     return NORMALOP;
+    // }
     else if(millis() - lastMillis >= 30 * 1000UL){
             return CELL_BALANCE;
     }
     else {
-        digitalWrite(FAULT_PIN, HIGH);
+        digitalWrite(AMS_FAULT_PIN, HIGH);
         n_fault_timer = millis();
         if(!OTUT_fault){
             temp_fault_timer = millis();

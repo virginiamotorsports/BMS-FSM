@@ -7,7 +7,9 @@
 #include <stdint.h>
 #include "bq79616.hpp"
 
-#define FAULT_PIN D3
+#define AMS_FAULT_PIN D3
+#define FAN_PIN D7
+#define RESET_PIN D11
 #define NFAULT_PIN D2
 #define IMD_STATUS D4
 #define POS_AIR_STATUS D9

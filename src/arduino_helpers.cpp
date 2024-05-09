@@ -6,6 +6,7 @@ uint8_t read_signal_pins(void){
     status |= !digitalRead(IMD_STATUS) << 1;
     status |= digitalRead(POS_AIR_STATUS) << 2;
     status |= digitalRead(NEG_AIR_STATUS) << 3;
+    status |= digitalRead(RESET_PIN) << 4;
     return status;
 }
 

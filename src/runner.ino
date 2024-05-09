@@ -13,13 +13,16 @@ void setup() {
     
     // establishConnection();
 
-    pinMode(FAULT_PIN, OUTPUT);
+    pinMode(AMS_FAULT_PIN, OUTPUT);
     pinMode(NFAULT_PIN, INPUT);
+    pinMode(FAN_PIN, OUTPUT);
+    pinMode(RESET_PIN, INPUT_PULLDOWN);
     pinMode(IMD_STATUS, INPUT_PULLDOWN);
     pinMode(POS_AIR_STATUS, INPUT_PULLDOWN);
     pinMode(NEG_AIR_STATUS, INPUT_PULLDOWN);
 
-    digitalWrite(FAULT_PIN, LOW);
+    digitalWrite(AMS_FAULT_PIN, LOW);
+    digitalWrite(FAN_PIN, LOW);
 
     // bootCommands();
 }
@@ -39,5 +42,5 @@ void loop() {
     if(loop_counter == 10){
         loop_counter = 0;
     }
-    delay(500);
+    delay(100);
 }
