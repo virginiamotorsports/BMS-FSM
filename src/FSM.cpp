@@ -92,12 +92,13 @@ uint16_t send_can_data(void){
 
     float_t pack_voltage = sum_voltages(modules);
     uint16_t pack_voltage_scaled = floor(pack_voltage * 10);
+    // uint16_t pack_voltage_motorolla = (pack_voltage_scaled << 8) | (pack_voltage_scaled >> 8);
     // Serial.println(pack_voltage);
 
     uint8_t soc = calc_soc(pack_voltage_scaled) * 2;
 
-    memcpy(message_data[LAST_ITEM + 1] + 3, &pack_voltage_scaled, 2);
-    memcpy(message_data[LAST_ITEM + 1] + 5, &soc, 1);
+    memcpy(message_data[LAST_ITEM + 1] + 2, &pack_voltage_scaled, 2);
+    memcpy(message_data[LAST_ITEM + 1] + 4, &soc, 1);
 
     uint16_t cell_temps = calc_min_max_temp(modules);
 

@@ -139,8 +139,8 @@ uint16_t calc_min_max_temp(BMS_status * modules){
 }
 
 uint32_t calc_min_max_volts(BMS_status * modules){
-    uint16_t min_volts = 65000;
-    uint16_t max_volts = 0;
+    uint32_t min_volts = 65000;
+    uint32_t max_volts = 0;
     for (uint16_t cb = 0; cb < STACK_DEVICES; cb++)
     {
         for (int i = 0; i < 16; i++)
@@ -153,7 +153,7 @@ uint32_t calc_min_max_volts(BMS_status * modules){
             
         }
     }  
-    return static_cast<uint32_t>(min_volts << 16 | max_volts);
+    return static_cast<uint32_t>(((min_volts & 0xFFFF) << 16) | (max_volts & 0xFFFF));
 }
 
 void printBatteryCellVoltages(BMS_status * modules) {
