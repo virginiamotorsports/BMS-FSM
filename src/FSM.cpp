@@ -333,7 +333,7 @@ void normalOpAction() {
 
         cell_temp = send_can_data();
 
-        if((cell_temp >> 8) > 40){
+        if((cell_temp >> 8) > 40 && (cell_temp >> 8) < 120){
             digitalWrite(FAN_PIN, HIGH); // Fan control code, turn on the fan if too hot, off if too cold but make sure there is some overlap to prevent oscilations 
         }
         else if((cell_temp >> 8) < 37){
