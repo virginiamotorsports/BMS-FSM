@@ -108,6 +108,11 @@ uint16_t send_can_data(void){
 
     memcpy(message_data[LAST_ITEM + 3] + 1, &min_max_cell_volts, 4);
     // Serial.println(min_max_cell_volts & 0xFFFF);
+    uint8_t fault_status = ((ams_fault & 0x1) << 1) | (imd_fault & 0x1);
+    memcpy(message_data[STATUS - START_ITEM], &fault_status, 1);
+    memcpy(message_data[STATUS - START_ITEM] + 1, &soc, 1);
+    memcpy(message_data[STATUS - START_ITEM] + 2, &pack_voltage_scaled, 2);
+    memcpy(message_data[STATUS - START_ITEM] + 4, &cell_temps, 2);
 
 
 
