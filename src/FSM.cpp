@@ -130,7 +130,7 @@ uint16_t send_can_data(void){
             CAN.clearError();
             break;
         }
-        delay(5);
+        delay(10);
         // Serial.println(ret);
     }
 
@@ -144,7 +144,7 @@ uint16_t send_can_data(void){
             CAN.clearError();
             break;
         }
-        delay(5);
+        delay(10);
     }
     return cell_temps;
 }
@@ -185,9 +185,11 @@ bool establishConnection() {
         Serial.begin(115200);
         Serial.setTimeout(500);
     }
+    while(!Serial) {};
     Serial1.begin(BAUDRATE, SERIAL_8N1);
     Serial1.setTimeout(1000);
-    CAN.begin(CanBitRate::BR_250k);
+    while(!Serial1) {};
+    CAN.begin(CanBitRate::BR_500k);
 
     return true;
 }
@@ -251,9 +253,9 @@ void runCellBalancing() {
 }
 
 void initialAction() {
-    if(DEBUG){
-        Serial.println(comm_fault);
-    }
+    // if(DEBUG){
+    //     Serial.println(comm_fault);
+    // }
 
     // Establish communications
     if (establishConnection()) {
@@ -414,8 +416,8 @@ FSM_STATE unexpectedFaultTransition() { return INITIAL; }
 
 void commFaultAction() {
     if(DEBUG){
-        Serial.println(comm_fault);
-        Serial.println("Comm fault action");
+        // Serial.println(comm_fault);
+        // Serial.println("Comm fault action");
         Serial.println("Communications Fault");
     }
     delay(1000);
