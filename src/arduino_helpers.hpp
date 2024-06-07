@@ -15,6 +15,9 @@
 #define POS_AIR_STATUS D9
 #define NEG_AIR_STATUS D8
 
+const float FULLY_CHARGED_VOLTAGE = 403.2;  // 96 cells * 4.2V
+const float NOMINAL_VOLTAGE = 355.2;        // 96 cells * 3.7V
+const float FULLY_DISCHARGED_VOLTAGE = 288.0;  // 96 cells * 3.0V
 
 #define GET_TEMP(resistance)                          \
     (1 / (a1 + b1 * (log(resistance / 10000.0)) +     \

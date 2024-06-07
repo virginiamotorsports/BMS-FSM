@@ -173,7 +173,7 @@ void printResponseFrameForDebug() {
 
 bool establishConnection() {
     if(DEBUG){
-        Serial.begin(9600);
+        Serial.begin(115200);
         Serial.setTimeout(500);
     }
     else{

@@ -119,12 +119,20 @@ float sum_voltages(BMS_status * modules){
 }
 
 uint8_t calc_soc(uint16_t pack_voltage){
-    return 100; //NEEDS TO BE IMPLEMENTED
+    // Ensure voltage is within the expected range
+    if (pack_voltage > FULLY_CHARGED_VOLTAGE) pack_voltage = FULLY_CHARGED_VOLTAGE;
+    if (pack_voltage < FULLY_DISCHARGED_VOLTAGE) pack_voltage = FULLY_DISCHARGED_VOLTAGE;
+    
+    // Linear interpolation to calculate SoC
+    float soc = ((pack_voltage - FULLY_DISCHARGED_VOLTAGE) / 
+                (FULLY_CHARGED_VOLTAGE - FULLY_DISCHARGED_VOLTAGE)) * 100.0;
+    
+    return soc;
 }
 
 uint16_t calc_min_max_temp(BMS_status * modules){
-    int8_t min_temp = 255;
-    int8_t max_temp = 0;
+    int8_t min_temp = 120;
+    int8_t max_temp = -120;
     for (uint16_t cb = 0; cb < STACK_DEVICES; cb++)
     {
         for (int i = 0; i < 8; i++)
