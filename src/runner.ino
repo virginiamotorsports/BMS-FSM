@@ -35,7 +35,7 @@ void setup() {
 uint8_t loop_counter = 0;
 
 void loop() {
-    // Serial.println("On main");
+    Serial.println("loop");
     (*(currentState->action))();
     FSM_STATE nextState = (*(currentState->transition))();
     currentState = state_map[nextState];

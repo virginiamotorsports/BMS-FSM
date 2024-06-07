@@ -120,13 +120,17 @@ float sum_voltages(BMS_status * modules){
 
 uint8_t calc_soc(uint16_t pack_voltage){
     // Ensure voltage is within the expected range
-    if (pack_voltage > FULLY_CHARGED_VOLTAGE) pack_voltage = FULLY_CHARGED_VOLTAGE;
-    if (pack_voltage < FULLY_DISCHARGED_VOLTAGE) pack_voltage = FULLY_DISCHARGED_VOLTAGE;
+    if (pack_voltage > FULLY_CHARGED_VOLTAGE){
+        pack_voltage = FULLY_CHARGED_VOLTAGE;
+    }
+    if (pack_voltage < FULLY_DISCHARGED_VOLTAGE) {
+        pack_voltage = FULLY_DISCHARGED_VOLTAGE;
+    }
     
     // Linear interpolation to calculate SoC
-    float soc = ((pack_voltage - FULLY_DISCHARGED_VOLTAGE) / 
-                (FULLY_CHARGED_VOLTAGE - FULLY_DISCHARGED_VOLTAGE)) * 100.0;
-    
+    uint8_t soc = ((pack_voltage - FULLY_DISCHARGED_VOLTAGE) / 
+                (FULLY_CHARGED_VOLTAGE - FULLY_DISCHARGED_VOLTAGE)) * 100;
+    // uint8_t soc = 100;
     return soc;
 }
 
