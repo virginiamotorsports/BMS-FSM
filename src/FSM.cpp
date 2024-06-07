@@ -108,6 +108,11 @@ uint16_t send_can_data(void){
 
     memcpy(message_data[LAST_ITEM + 3] + 1, &min_max_cell_volts, 4);
     // Serial.println(min_max_cell_volts & 0xFFFF);
+    uint8_t fault_status = ((ams_fault & 0x1) << 1) | (imd_fault & 0x1);
+    memcpy(message_data[STATUS - START_ITEM], &fault_status, 1);
+    memcpy(message_data[STATUS - START_ITEM] + 1, &soc, 1);
+    memcpy(message_data[STATUS - START_ITEM] + 2, &pack_voltage_scaled, 2);
+    memcpy(message_data[STATUS - START_ITEM] + 4, &cell_temps, 2);
 
 
 
@@ -125,7 +130,7 @@ uint16_t send_can_data(void){
             CAN.clearError();
             break;
         }
-        delay(5);
+        delay(10);
         // Serial.println(ret);
     }
 
@@ -139,7 +144,7 @@ uint16_t send_can_data(void){
             CAN.clearError();
             break;
         }
-        delay(5);
+        delay(10);
     }
     return cell_temps;
 }
@@ -180,9 +185,11 @@ bool establishConnection() {
         Serial.begin(115200);
         Serial.setTimeout(500);
     }
+    while(!Serial) {};
     Serial1.begin(BAUDRATE, SERIAL_8N1);
     Serial1.setTimeout(1000);
-    CAN.begin(CanBitRate::BR_250k);
+    while(!Serial1) {};
+    CAN.begin(CanBitRate::BR_500k);
 
     return true;
 }
@@ -246,9 +253,9 @@ void runCellBalancing() {
 }
 
 void initialAction() {
-    if(DEBUG){
-        Serial.println(comm_fault);
-    }
+    // if(DEBUG){
+    //     Serial.println(comm_fault);
+    // }
 
     // Establish communications
     if (establishConnection()) {
@@ -409,8 +416,8 @@ FSM_STATE unexpectedFaultTransition() { return INITIAL; }
 
 void commFaultAction() {
     if(DEBUG){
-        Serial.println(comm_fault);
-        Serial.println("Comm fault action");
+        // Serial.println(comm_fault);
+        // Serial.println("Comm fault action");
         Serial.println("Communications Fault");
     }
     delay(1000);
