@@ -36,7 +36,8 @@ class BatteryMonitorApp:
 
     def update_voltages(self, voltages):
         for i, voltage in enumerate(voltages):
-            self.voltage_labels[i].config(text=f"Cell {i+1} Voltage: {voltage:.2f} V")
+            color = self.get_voltage_color(voltage)
+            self.voltage_labels[i].config(text=f"Cell {i+1} Voltage: {voltage:.2f} V", fg=color)
 
     def update_temperatures(self, temperatures):
         for i, temp in enumerate(temperatures):
@@ -53,6 +54,20 @@ class BatteryMonitorApp:
             if message is not None:
                 decoded_message = self.db.decode_message(message.arbitration_id, message.data)
                 self.process_message(decoded_message)
+
+    def get_voltage_color(self, voltage):
+        # Map the voltage to a color between green (4.2V) and red (3.0V)
+        min_voltage = 3.0
+        max_voltage = 4.2
+        if voltage <= min_voltage:
+            return "#FF0000"  # Red
+        elif voltage >= max_voltage:
+            return "#00FF00"  # Green
+        else:
+            ratio = (voltage - min_voltage) / (max_voltage - min_voltage)
+            red = int(255 * (1 - ratio))
+            green = int(255 * ratio)
+            return f'#{red:02x}{green:02x}00'
 
 if __name__ == "__main__":
     bus = can.interface.Bus(interface='kvaser', channel='0', bitrate=500000)

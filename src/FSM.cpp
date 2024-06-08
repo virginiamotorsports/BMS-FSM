@@ -22,6 +22,12 @@ bool OVUV_fault = false;
 bool OTUT_fault = false;
 bool ams_fault = false, imd_fault = false; // These are the latching faults
 uint16_t cell_temp;
+float_t pack_voltage = 0;
+uint16_t pack_voltage_scaled = 0;
+uint8_t soc = 0;
+uint16_t cell_temps = 0;
+uint32_t min_max_cell_volts = 0;
+uint8_t fault_status = 0;
 
 int32_t signed_val = 0;
 long double sr_val = 0;
@@ -90,25 +96,10 @@ uint16_t send_can_data(void){
     memcpy(message_data[CELL_VOLTAGE_10 - START_ITEM], (modules[5].cell_voltages), 8);
     memcpy(message_data[CELL_VOLTAGE_11 - START_ITEM], (modules[5].cell_voltages + 8), 8);
 
-    float_t pack_voltage = sum_voltages(modules);
-    uint16_t pack_voltage_scaled = floor(pack_voltage * 10);
-    // uint16_t pack_voltage_motorolla = (pack_voltage_scaled << 8) | (pack_voltage_scaled >> 8);
-    // Serial.println(pack_voltage);
-
-    uint8_t soc = calc_soc(pack_voltage_scaled) * 2;
-
     memcpy(message_data[LAST_ITEM + 1] + 2, &pack_voltage_scaled, 2);
     memcpy(message_data[LAST_ITEM + 1] + 4, &soc, 1);
-
-    uint16_t cell_temps = calc_min_max_temp(modules);
-
     memcpy(message_data[LAST_ITEM + 2] + 5, &cell_temps, 2);
-
-    uint32_t min_max_cell_volts = calc_min_max_volts(modules);
-
     memcpy(message_data[LAST_ITEM + 3] + 1, &min_max_cell_volts, 4);
-    // Serial.println(min_max_cell_volts & 0xFFFF);
-    uint8_t fault_status = ((ams_fault & 0x1) << 1) | (imd_fault & 0x1);
     memcpy(message_data[STATUS - START_ITEM], &fault_status, 1);
     memcpy(message_data[STATUS - START_ITEM] + 1, &soc, 1);
     memcpy(message_data[STATUS - START_ITEM] + 2, &pack_voltage_scaled, 2);
@@ -338,7 +329,14 @@ void normalOpAction() {
         read_cell_temps(modules);
         // read_die_temps(modules);
 
-        cell_temp = send_can_data();
+        pack_voltage = sum_voltages(modules);
+        pack_voltage_scaled = floor(pack_voltage * 10);
+        soc = calc_soc(pack_voltage_scaled) * 2;
+        cell_temps = calc_min_max_temp(modules);
+        min_max_cell_volts = calc_min_max_volts(modules);
+        fault_status = ((ams_fault & 0x1) << 1) | (imd_fault & 0x1);
+
+        send_can_data();
 
         if((cell_temp >> 8) > 40 && (cell_temp >> 8) < 120){
             digitalWrite(FAN_PIN, HIGH); // Fan control code, turn on the fan if too hot, off if too cold but make sure there is some overlap to prevent oscilations 
