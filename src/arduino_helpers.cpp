@@ -3,7 +3,7 @@
 uint8_t read_signal_pins(void){
     uint8_t status = 0;
     status |= !digitalRead(NFAULT_PIN);
-    status |= !digitalRead(IMD_STATUS) << 1;
+    status |= digitalRead(IMD_STATUS) << 1;
     status |= digitalRead(POS_AIR_STATUS) << 2;
     status |= digitalRead(NEG_AIR_STATUS) << 3;
     status |= digitalRead(RESET_PIN) << 4;
@@ -24,18 +24,19 @@ void read_cell_voltages(BMS_status * modules){
     // printConsole("B%d voltages:\t", TOTALBOARDS - cb - 1);
     for (int i = 0; i < ACTIVECHANNELS; i++)
     {
+
         int boardcharStart = (ACTIVECHANNELS * 2 + 6) * cb;
         raw_data = (((voltage_response_frame[boardcharStart + (i * 2) + 4] & 0xFF) << 8) | (voltage_response_frame[boardcharStart + (i * 2) + 5] & 0xFF));
         uint16_t temp_voltage = (uint16_t)(Complement(raw_data, 0.19073)) / 10;
-        modules[cb].cell_voltages[i] = (uint8_t)(((uint16_t)(Complement(raw_data, 0.19073))) / 10.0);
+        // modules[cb].cell_voltages[ACTIVECHANNELS-i] = (uint8_t)(((uint16_t)(Complement(raw_data, 0.19073))) / 10.0);
         if(temp_voltage <= 250)
         {
-        modules[cb].cell_voltages[i] = 0;
+        modules[cb].cell_voltages[ACTIVECHANNELS-i] = 0;
         // printConsole("Cell %d, %.3f ",i, (modules[cb].cell_voltages[i]) / 100.0 );
 
         }
         else{
-        modules[cb].cell_voltages[i] = (uint8_t)(((uint16_t)(Complement(raw_data, 0.19073))) / 10.0 - 250);
+        modules[cb].cell_voltages[ACTIVECHANNELS - i] = (uint8_t)(((uint16_t)(Complement(raw_data, 0.19073))) / 10.0 - 250);
         // printConsole("Cell %d, %.3f ",i, (modules[cb].cell_voltages[i] + 250) / 100.0 );
 
         }
@@ -62,10 +63,10 @@ void read_cell_temps(BMS_status * modules){
         temp_voltage = (uint16_t)(raw_data * 0.15259);
         if(temp_voltage >= 4800)
         {
-        modules[cb].cell_temps[i] = 255;
+        modules[cb].cell_temps[CELL_TEMP_NUM - i] = 255;
         }
         else{
-        modules[cb].cell_temps[i] = (uint8_t)((uint16_t)(GET_TEMP(GET_RESISTANCE((temp_voltage / 1000.0)))));
+        modules[cb].cell_temps[CELL_TEMP_NUM - i] = (uint8_t)((uint16_t)(GET_TEMP(GET_RESISTANCE((temp_voltage / 1000.0)))));
         }
         // printConsole("%i ", modules[cb].cell_temps[i]);
     }

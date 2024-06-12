@@ -47,5 +47,5 @@ void loop() {
     if(loop_counter == 10){
         loop_counter = 0;
     }
-    delay(100);
+    delay(200);
 }

@@ -7,6 +7,7 @@ extern uint8_t loop_counter;
 
 unsigned long lastMillis = millis();
 unsigned long temp_fault_timer = millis();
+unsigned long comm_fault_timer = millis();
 unsigned long voltage_fault_timer = millis();
 unsigned long n_fault_timer = millis();
 
@@ -20,7 +21,8 @@ bool bms_fault = false;
 bool n_fault = false;
 bool OVUV_fault = false;
 bool OTUT_fault = false;
-bool ams_fault = false, imd_fault = false; // These are the latching faults
+bool ams_fault = true, imd_fault = true, imd_current_pin = false; // These are the latching faults
+bool reset = false, old_reset = false; // These are the latching faults
 uint16_t cell_temp;
 float_t pack_voltage = 0;
 uint16_t pack_voltage_scaled = 0;
@@ -28,6 +30,7 @@ uint8_t soc = 0;
 uint16_t cell_temps = 0;
 uint32_t min_max_cell_volts = 0;
 uint8_t fault_status = 0;
+uint8_t comm_fault_counter = 0;
 
 int32_t signed_val = 0;
 long double sr_val = 0;
@@ -36,7 +39,7 @@ char temp_response_frame[(8 * 2 + 6) * STACK_DEVICES];  // hold all 16 vcell*_hi
 char response_frame_current[(1 + 6)];   //
 
 bool communicationsOnOff = false;
-uint8_t pin_status, old_pin_status = 0;
+uint8_t pin_status = 0;
 int fault_pin = true;
 bool readyToRun = false;
 bool endCellBalancing = false;
@@ -314,20 +317,30 @@ void normalOpAction() {
 
         memset(&pin_status, 0, 1);
         pin_status = read_signal_pins(); // bits 0 -> nfault, 1 -> IMD_STATUS, 2 -> POS_AIR, 3 -> NEG_AIR, 4 -> RESET
-
-        if(((old_pin_status >> 4) & 0x1 == 0x0) && ((pin_status >> 4) & 0x1)){
+        reset = (pin_status >> 4) & 0x1;
+        imd_current_pin = (pin_status >> 1) & 0x1;
+        if((old_reset == false) && (reset)){
             ams_fault = false;
             imd_fault = false;
         }
 
-        if((pin_status >> 1) & 0x1 == 0x0){
-            imd_fault == true;
+        if(!imd_current_pin){
+            imd_fault = true;
         }
+        old_reset = reset;
+        Serial.println(imd_current_pin);
+        Serial.print("IMD_Fault: ");
+        Serial.println(imd_fault);
+        Serial.print("AMS Fault: ");
+        Serial.println(ams_fault);
+        Serial.print("Reset: ");
+        Serial.println((pin_status >> 4) & 0x1);
+
 
 
         read_cell_voltages(modules);
         read_cell_temps(modules);
-        // read_die_temps(modules);
+        read_die_temps(modules);
 
         pack_voltage = sum_voltages(modules);
         pack_voltage_scaled = floor(pack_voltage * 10);
@@ -348,13 +361,14 @@ void normalOpAction() {
         if(DEBUG){
             printBatteryCellVoltages(modules);
             printBatteryCellTemps(modules);
+            Serial.println(modules[0].die_temp);
         }
     }
 }
 
 FSM_STATE normalOpTransition() {
 
-    if (comm_fault) {
+    if (comm_fault &&  millis() - comm_fault_timer > 15 * 1000UL) {
         if(DEBUG){
             Serial.println("COMM Fault");
         }
@@ -386,7 +400,7 @@ FSM_STATE normalOpTransition() {
     //     ams_fault = true;
     //     return NORMALOP;
     // }
-    else if(millis() - lastMillis >= 30 * 1000UL){
+    else if(millis() - lastMillis >= 120 * 1000UL){
             return CELL_BALANCE;
     }
     else {
@@ -396,7 +410,14 @@ FSM_STATE normalOpTransition() {
             temp_fault_timer = millis();
         }
         if(!OVUV_fault){
-        voltage_fault_timer = millis(); //reset fault timers if there are no faults
+            voltage_fault_timer = millis(); //reset fault timers if there are no faults
+        }
+        if(!comm_fault){
+            comm_fault_timer = millis(); //reset fault timers if there are no faults
+            comm_fault_counter = 0;
+        }
+        else{
+            comm_fault_counter += 1;
         }
         return NORMALOP;
     }
@@ -418,9 +439,10 @@ void commFaultAction() {
         // Serial.println("Comm fault action");
         Serial.println("Communications Fault");
     }
-    delay(1000);
+    delay(100);
+    HWRST79616();
+    delay(100);
     bootCommands();
-    fault_pin = 0;
 }
 
 FSM_STATE commFaultTransition() {

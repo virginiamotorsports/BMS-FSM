@@ -1,19 +1,3 @@
-/*
- *  @file bq79606.h
- *
- *  @author Vince Toledo - Texas Instruments Inc.
- *  @date July 2019
- *  @version 1.0 beta version
- *  @note Built with CCS for Hercules Version: 8.1.0.00011
- *  @note Built for TMS570LS1224 (LAUNCH XL2)
- */
-
-/*****************************************************************************
-**
-**  Copyright (c) 2011-2017 Texas Instruments
-**
-******************************************************************************/
-
 
 #ifndef BQ79616_HPP_
 #define BQ79616_HPP_

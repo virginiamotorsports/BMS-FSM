@@ -102,6 +102,11 @@ void HWRST79616(void) {
     // sciREG->GCR1 &= ~(1U << 7U); // put SCI into reset
     // sciREG->PIO0 &= ~(1U << 2U); // disable transmit function - now a GPIO
     // sciREG->PIO3 &= ~(1U << 2U); // set output to low
+
+    for(int i = STACK_DEVICES; i >= 0; i--){
+        WriteReg(i, CONTROL2, 0x02, 1, FRMWRT_SGL_W); // enable TSREF
+    }
+
     Serial1.end();
     delay(1);
     pinMode(1, OUTPUT);
