@@ -35,7 +35,7 @@ void setup() {
 uint8_t loop_counter = 0;
 
 void loop() {
-    Serial.println("loop");
+    // Serial.println("loop");
     (*(currentState->action))();
     FSM_STATE nextState = (*(currentState->transition))();
     currentState = state_map[nextState];
@@ -47,5 +47,5 @@ void loop() {
     if(loop_counter == 10){
         loop_counter = 0;
     }
-    delay(200);
+    delay(300);
 }

@@ -31,12 +31,12 @@ void read_cell_voltages(BMS_status * modules){
         // modules[cb].cell_voltages[ACTIVECHANNELS-i] = (uint8_t)(((uint16_t)(Complement(raw_data, 0.19073))) / 10.0);
         if(temp_voltage <= 250)
         {
-        modules[cb].cell_voltages[ACTIVECHANNELS-i] = 0;
+        modules[cb].cell_voltages[ACTIVECHANNELS - 1 - i] = 0;
         // printConsole("Cell %d, %.3f ",i, (modules[cb].cell_voltages[i]) / 100.0 );
 
         }
         else{
-        modules[cb].cell_voltages[ACTIVECHANNELS - i] = (uint8_t)(((uint16_t)(Complement(raw_data, 0.19073))) / 10.0 - 250);
+        modules[cb].cell_voltages[ACTIVECHANNELS - 1 - i] = (uint8_t)(((uint16_t)(Complement(raw_data, 0.19073))) / 10.0 - 250);
         // printConsole("Cell %d, %.3f ",i, (modules[cb].cell_voltages[i] + 250) / 100.0 );
 
         }
@@ -63,10 +63,10 @@ void read_cell_temps(BMS_status * modules){
         temp_voltage = (uint16_t)(raw_data * 0.15259);
         if(temp_voltage >= 4800)
         {
-        modules[cb].cell_temps[CELL_TEMP_NUM - i] = 255;
+        modules[cb].cell_temps[CELL_TEMP_NUM - 1 - i] = 255;
         }
         else{
-        modules[cb].cell_temps[CELL_TEMP_NUM - i] = (uint8_t)((uint16_t)(GET_TEMP(GET_RESISTANCE((temp_voltage / 1000.0)))));
+        modules[cb].cell_temps[CELL_TEMP_NUM - 1 - i] = (uint8_t)((uint16_t)(GET_TEMP(GET_RESISTANCE((temp_voltage / 1000.0)))));
         }
         // printConsole("%i ", modules[cb].cell_temps[i]);
     }

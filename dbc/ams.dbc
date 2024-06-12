@@ -37,6 +37,9 @@ BU_:
 
 
 BO_ 256 Status: 8 Vector__XXX
+ SG_ AMS_FAULT : 0|8@1+ (1,0) [0|120] "C" Vector__XXX
+ SG_ IMD_FAULT : 8|8@1+ (1,0) [0|120] "C" Vector__XXX
+ SG_ Temp3 : 16|8@1+ (1,0) [0|120] "C" Vector__XXX
 
 BO_ 257 Faults: 8 Vector__XXX
 

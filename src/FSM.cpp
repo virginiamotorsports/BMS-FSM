@@ -99,6 +99,10 @@ uint16_t send_can_data(void){
     memcpy(message_data[CELL_VOLTAGE_10 - START_ITEM], (modules[5].cell_voltages), 8);
     memcpy(message_data[CELL_VOLTAGE_11 - START_ITEM], (modules[5].cell_voltages + 8), 8);
 
+
+    uint16_t pack_voltage_scaled_flipped = BYTESWAP16(pack_voltage_scaled);
+    uint16_t cell_temps_flipped = BYTESWAP16(cell_temps);
+    uint16_t min_max_cell_volts_flipped = BYTESWAP32(min_max_cell_volts);
     memcpy(message_data[LAST_ITEM + 1] + 2, &pack_voltage_scaled, 2);
     memcpy(message_data[LAST_ITEM + 1] + 4, &soc, 1);
     memcpy(message_data[LAST_ITEM + 2] + 5, &cell_temps, 2);
@@ -328,7 +332,7 @@ void normalOpAction() {
             imd_fault = true;
         }
         old_reset = reset;
-        Serial.println(imd_current_pin);
+        // Serial.println(imd_current_pin);
         Serial.print("IMD_Fault: ");
         Serial.println(imd_fault);
         Serial.print("AMS Fault: ");
@@ -347,21 +351,22 @@ void normalOpAction() {
         soc = calc_soc(pack_voltage_scaled) * 2;
         cell_temps = calc_min_max_temp(modules);
         min_max_cell_volts = calc_min_max_volts(modules);
-        fault_status = ((ams_fault & 0x1) << 1) | (imd_fault & 0x1);
+        fault_status = ((reset & 0x1) << 2) | ((ams_fault & 0x1) << 1) | (imd_fault & 0x1);
+        Serial.println(fault_status);
 
         send_can_data();
 
-        if((cell_temp >> 8) > 40 && (cell_temp >> 8) < 120){
-            digitalWrite(FAN_PIN, HIGH); // Fan control code, turn on the fan if too hot, off if too cold but make sure there is some overlap to prevent oscilations 
-        }
-        else if((cell_temp >> 8) < 37){
-            digitalWrite(FAN_PIN, LOW);
-        }
+        // if((cell_temp >> 8) > 40 && (cell_temp >> 8) < 120){
+        //     digitalWrite(FAN_PIN, HIGH); // Fan control code, turn on the fan if too hot, off if too cold but make sure there is some overlap to prevent oscilations 
+        // }
+        // else if((cell_temp >> 8) < 37){
+        //     digitalWrite(FAN_PIN, LOW);
+        // }
 
         if(DEBUG){
             printBatteryCellVoltages(modules);
             printBatteryCellTemps(modules);
-            Serial.println(modules[0].die_temp);
+            // Serial.println(modules[0].die_temp);
         }
     }
 }
