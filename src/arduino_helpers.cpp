@@ -45,6 +45,7 @@ void read_cell_voltages(BMS_status * modules){
     }
 
 }
+
 void read_cell_temps(BMS_status * modules){
     char cell_temp_response_frame[(8 * 2 + 6) * STACK_DEVICES];  // hold all 16 vcell*_hi/lo values
     uint16_t raw_data = 0;
@@ -75,6 +76,7 @@ void read_cell_temps(BMS_status * modules){
 
 
 }
+
 void read_die_temps(BMS_status * modules){
     char die_temp_response_frame[(2 + 6) * STACK_DEVICES]; 
     uint16_t raw_data = 0;

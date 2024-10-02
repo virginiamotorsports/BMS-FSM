@@ -114,38 +114,38 @@ uint16_t send_can_data(void){
 
 
 
-    for(uint32_t addr = START_ITEM; addr < LAST_ITEM; addr++){
+    //for(uint32_t addr = START_ITEM; addr < LAST_ITEM; addr++){
         // memcpy((void *)(msg_data), &message_data[addr], sizeof(message_data[addr]));
         // Serial.println(addr);
         // *msg = CanMsg(0x400, sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]);
 
-        int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]));
-        if(!(ret == 0 || ret == 1)){
-            if(DEBUG){
-                Serial.print("CAN Error: ");
-                Serial.println(ret);
-            }
-            CAN.clearError();
-            break;
-        }
-        delay(10);
+        //int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]));
+        //if(!(ret == 0 || ret == 1)){
+        //    if(DEBUG){
+        //        Serial.print("CAN Error: ");
+        //        Serial.println(ret);
+        //    }
+        //    CAN.clearError();
+        //    break;
+        //}
+        //delay(10);
         // Serial.println(ret);
-    }
+    //}
 
-    for(uint32_t addr = ORION_MSG_1; addr <= ORION_MSG_3; addr++){
-        int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]), message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]));
-        if(!(ret == 0 || ret == 1)){
-            if(DEBUG){
-                Serial.print("CAN Error: ");
-                Serial.println(ret);
-            }
-            CAN.clearError();
-            break;
-        }
-        delay(10);
-    }
-    return cell_temps;
-}
+//     for(uint32_t addr = ORION_MSG_1; addr <= ORION_MSG_3; addr++){
+//         int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]), message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]));
+//         if(!(ret == 0 || ret == 1)){
+//             if(DEBUG){
+//                 Serial.print("CAN Error: ");
+//                 Serial.println(ret);
+//             }
+//             CAN.clearError();
+//             break;
+//         }
+//         delay(10);
+//     }
+//     return cell_temps;
+// }
 
 
 void printResponseFrameForDebug() {
