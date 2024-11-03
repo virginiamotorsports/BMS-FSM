@@ -18,26 +18,39 @@ void read_cell_voltages(BMS_status * modules){
 
     // VOLTAGE SENSE (EVERY 9ms, so every 5 loops of 2ms each)
     ReadReg(0, VCELL16_HI + ((16 - ACTIVECHANNELS) * 2), voltage_response_frame, ACTIVECHANNELS * 2, 0, FRMWRT_STK_R); // 494 us
-
-    for (uint16_t cb = 0; cb < STACK_DEVICES; cb++)
+    for (uint16_t cb = 0; cb < 2; cb++) // 1 = STACK_DEVICES
     {
-    // printConsole("B%d voltages:\t", TOTALBOARDS - cb - 1);
+      Serial.print("cb: ");
+      Serial.print(cb);
+      Serial.print("\n");
+    // printConsole("B%d voltages:\t", TOTALBOARDS - cb - 1); 
     for (int i = 0; i < ACTIVECHANNELS; i++)
     {
-
         int boardcharStart = (ACTIVECHANNELS * 2 + 6) * cb;
         raw_data = (((voltage_response_frame[boardcharStart + (i * 2) + 4] & 0xFF) << 8) | (voltage_response_frame[boardcharStart + (i * 2) + 5] & 0xFF));
+        // Serial.print("raw data: ");
+        // Serial.print(raw_data);
+        // Serial.print("\n");
         uint16_t temp_voltage = (uint16_t)(Complement(raw_data, 0.19073)) / 10;
+        Serial.print("temp voltage: ");
+        Serial.print(temp_voltage);
+        Serial.print("\n");
         // modules[cb].cell_voltages[ACTIVECHANNELS-i] = (uint8_t)(((uint16_t)(Complement(raw_data, 0.19073))) / 10.0);
         if(temp_voltage <= 250)
         {
         modules[cb].cell_voltages[ACTIVECHANNELS - 1 - i] = 0;
-        // printConsole("Cell %d, %.3f ",i, (modules[cb].cell_voltages[i]) / 100.0 );
+        printConsole("Cell %d, %.3f ",i, (modules[cb].cell_voltages[i]) / 100.0 );
+        printConsole("\n");
 
         }
         else{
         modules[cb].cell_voltages[ACTIVECHANNELS - 1 - i] = (uint8_t)(((uint16_t)(Complement(raw_data, 0.19073))) / 10.0 - 250);
-        // printConsole("Cell %d, %.3f ",i, (modules[cb].cell_voltages[i] + 250) / 100.0 );
+        // Serial.print("temp voltage read input: ");
+        // Serial.print((uint8_t)(((uint16_t)(Complement(raw_data, 0.19073))) / 10.0 - 250));
+        // Serial.print("\n");
+
+        printConsole("Cell %d, %.3f ",i, (modules[cb].cell_voltages[i] + 250) / 100.0 );
+        printConsole("\n");
 
         }
     }
@@ -61,6 +74,9 @@ void read_cell_temps(BMS_status * modules){
     {
         int boardcharStart = (CELL_TEMP_NUM * 2 + 6) * cb;
         raw_data = ((cell_temp_response_frame[boardcharStart + (i * 2) + 4] & 0xFF) << 8) | (cell_temp_response_frame[boardcharStart + (i * 2) + 5] & 0xFF);
+        // Serial.print("raw temp data: ");
+        // Serial.print(raw_data);
+        // Serial.print("\n");
         temp_voltage = (uint16_t)(raw_data * 0.15259);
         if(temp_voltage >= 4800)
         {
@@ -173,8 +189,8 @@ uint32_t calc_min_max_volts(BMS_status * modules){
 
 void printBatteryCellVoltages(BMS_status * modules) {
 
-    for (int i = 0; i < 6; i++) {
-        Serial.print("Pack ");
+    for (int i = 0; i < 2; i++) {
+        Serial.print("Pack voltages for pack 1 (THIS IS HARDCODED--FIX)");
         Serial.print(i+1);
         for (size_t j = 0; j < 16; j++) {
             // Untransform the value
@@ -189,9 +205,8 @@ void printBatteryCellVoltages(BMS_status * modules) {
 }
 
 void printBatteryCellTemps(BMS_status * modules) {
-
-    for (int i = 0; i < 6; i++) {
-        Serial.print("Pack ");
+    for (int i = 0; i < 1; i++) {
+        Serial.print("Pack temp for pack AHHHHHHHHHHHH ");
         Serial.print(i+1);
         for (size_t j = 0; j < 8; j++) {
             // Untransform the value

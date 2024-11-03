@@ -18,7 +18,7 @@
 
 // User defines
 #define DEBUG true
-#define TOTALBOARDS 6     //boards in stack
+#define TOTALBOARDS 1     //boards in stack
 #define STACK_DEVICES (TOTALBOARDS-BRIDGEDEVICE)
 #define CELL_TEMP_NUM 8
 #define ACTIVECHANNELS 16   //channels to activate (incomplete, does not work right now)

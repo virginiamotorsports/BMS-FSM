@@ -527,7 +527,7 @@ int ReadReg(char bID, uint16_t wAddr, char * pData, char bLen, uint32_t dwTimeOu
         bRes = 0;
     }
 
-    if(millis() - lastReceiveTime >= 950)
+    if(millis() - lastReceiveTime >= 950) 
     {
         comm_fault = true;
         return -1;

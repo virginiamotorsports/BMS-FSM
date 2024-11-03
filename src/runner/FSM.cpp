@@ -247,7 +247,6 @@ void runCellBalancing() {
         endCellBalancing = true;
     }
     lastMillis = millis();
-
 }
 
 void initialAction() {
@@ -339,7 +338,6 @@ void normalOpAction() {
         Serial.println(ams_fault);
         Serial.print("Reset: ");
         Serial.println((pin_status >> 4) & 0x1);
-
 
 
         read_cell_voltages(modules);
