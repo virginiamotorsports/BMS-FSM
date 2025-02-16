@@ -7,8 +7,6 @@
 extern State initialState;
 extern std::map<FSM_STATE, State*> state_map;
 
-FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> CAN1;
-
 State* currentState = &initialState;
 
 void setup() {
