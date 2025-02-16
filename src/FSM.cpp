@@ -119,7 +119,15 @@ uint16_t send_can_data(void){
         // Serial.println(addr);
         // *msg = CanMsg(0x400, sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]);
 
-        int ret = CAN1.write(CanMsg(CanStandardId(addr), sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]));
+        CanMsg.id = addr; // not sure
+        CanMsg.len = sizeof(message_data[addr - START_ITEM]);
+        // after i added this there were a lot of errors about out of bounds memory stuff but i think that was just john link
+        // writing unreasonable code
+        uint8_t const* msg_data = message_data[addr - START_ITEM]; 
+        memcpy(CanMsg.buf, msg_data, 8);
+
+        // doesn't actually return an int, need to check for errors another way
+        int ret = can1.write(CanMsg); //CanMsg(CanStandardId(addr), sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]));
         if(!(ret == 0 || ret == 1)){ // double check
             if(DEBUG){
                 Serial.print("CAN Error: ");
@@ -134,7 +142,13 @@ uint16_t send_can_data(void){
 
     for(uint32_t addr = ORION_MSG_1; addr <= ORION_MSG_3; addr++){
         // check if need to change anything to cast as CanMsg
-        int ret = CAN1.write(CanMsg(CanStandardId(addr), sizeof(message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]), message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]));
+        CanMsg.id = addr;
+        CanMsg.len = sizeof(message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]);
+        uint8_t const* msg_data = message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1];
+        memcpy(CanMsg.buf, msg_data, 8);
+        
+        // doesn't actually return an int, need to check for errors another way
+        int ret = can1.write(CanMsg); //CanMsg(CanStandardId(addr), sizeof(message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]), message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]));
         if(!(ret == 0 || ret == 1)){
             if(DEBUG){
                 Serial.print("CAN Error: ");
@@ -188,8 +202,8 @@ bool establishConnection() {
     Serial1.begin(BAUDRATE, SERIAL_8N1);
     Serial1.setTimeout(1000);
     while(!Serial1) {};
-    CAN1.begin(); // removed CanBitRate param
-    CAN1.setBaudRate(CanBitRate::BR_500k); // use BAUDRATE?, supposed to take in uint32_t
+    can1.begin(); // removed CanBitRate param
+    // can1.setBaudRate(CanBitRate::BR_500k); // use BAUDRATE?, supposed to take in uint32_t
 
     return true;
 }

@@ -24,8 +24,9 @@ void setup() {
     digitalWrite(AMS_FAULT_PIN, LOW);
     digitalWrite(FAN_PIN, LOW);
 
-    CAN1.setMailboxMask(4, 0x1FFFFFFFU); //disables reading can std msgs
-    CAN1.setMailboxMask(6, 0x1FFFFFFFU); //disables reading can ext msgs see https://forum.arduino.cc/t/uno-r4-can-mask-filter/1177947/4
+    // replace mailbox function with some equivalent in FlexCAN
+    can1.setMailboxMask(4, 0x1FFFFFFFU); //disables reading can std msgs
+    can1.setMailboxMask(6, 0x1FFFFFFFU); //disables reading can ext msgs see https://forum.arduino.cc/t/uno-r4-can-mask-filter/1177947/4
 
 
     

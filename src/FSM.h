@@ -12,6 +12,7 @@
 #include <map>
 
 FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> CAN1;
+CAN_message_t CanMsg;
 
 typedef enum{
     INITIAL,
