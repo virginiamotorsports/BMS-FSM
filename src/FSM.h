@@ -5,12 +5,13 @@
 // #include "can_helpers.hpp"
 
 #include <Arduino.h>
-#include <Arduino_CAN.h>
+#include <FlexCAN_T4.h> //<Arduino_CAN.h>
 #include <math.h>
 #include <stdio.h>
 
 #include <map>
 
+FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> CAN1;
 
 typedef enum{
     INITIAL,

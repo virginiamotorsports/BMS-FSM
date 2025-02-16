@@ -1,11 +1,13 @@
 #include <Arduino.h>
-#include <Arduino_CAN.h>
+#include <FlexCAN_T4.h>  //#include <Arduino_CAN.h>
 #include "arduino_helpers.hpp"
 #include "FSM.h"
 #include <map>
 
 extern State initialState;
 extern std::map<FSM_STATE, State*> state_map;
+
+FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> CAN1;
 
 State* currentState = &initialState;
 
@@ -24,8 +26,8 @@ void setup() {
     digitalWrite(AMS_FAULT_PIN, LOW);
     digitalWrite(FAN_PIN, LOW);
 
-    CAN.setMailboxMask(4, 0x1FFFFFFFU); //disables reading can std msgs
-    CAN.setMailboxMask(6, 0x1FFFFFFFU); //disables reading can ext msgs see https://forum.arduino.cc/t/uno-r4-can-mask-filter/1177947/4
+    CAN1.setMailboxMask(4, 0x1FFFFFFFU); //disables reading can std msgs
+    CAN1.setMailboxMask(6, 0x1FFFFFFFU); //disables reading can ext msgs see https://forum.arduino.cc/t/uno-r4-can-mask-filter/1177947/4
 
 
     

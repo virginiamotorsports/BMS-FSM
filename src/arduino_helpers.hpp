@@ -7,13 +7,13 @@
 #include <stdint.h>
 #include "bq79616.hpp"
 
-#define AMS_FAULT_PIN D3
-#define FAN_PIN D7
-#define RESET_PIN D11
-#define NFAULT_PIN D2
-#define IMD_STATUS D4
-#define POS_AIR_STATUS D9
-#define NEG_AIR_STATUS D8
+#define AMS_FAULT_PIN 6 //AMS_FAULT_PIN D3
+#define FAN_PIN 7 //FAN_PIN D7 (fan_relay?)
+#define RESET_PIN 10 //RESET_PIN D11
+#define NFAULT_PIN 19 //NFAULT_PIN D2
+#define IMD_STATUS 5 //IMD_STATUS D4 (Not_IMD_3.3v instead of 5v?)
+#define POS_AIR_STATUS 9 //POS_AIR_STATUS D9 (Air+3.3v)
+#define NEG_AIR_STATUS 8 //NEG_AIR_STATUS D8 (Air-3.3v)
 
 const float FULLY_CHARGED_VOLTAGE = 403.2;  // 96 cells * 4.2V
 const float NOMINAL_VOLTAGE = 355.2;        // 96 cells * 3.7V

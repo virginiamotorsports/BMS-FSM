@@ -119,13 +119,13 @@ uint16_t send_can_data(void){
         // Serial.println(addr);
         // *msg = CanMsg(0x400, sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]);
 
-        int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]));
-        if(!(ret == 0 || ret == 1)){
+        int ret = CAN1.write(CanMsg(CanStandardId(addr), sizeof(message_data[addr - START_ITEM]), message_data[addr - START_ITEM]));
+        if(!(ret == 0 || ret == 1)){ // double check
             if(DEBUG){
                 Serial.print("CAN Error: ");
                 Serial.println(ret);
             }
-            CAN.clearError();
+            // CAN.clearError(); //idk of an equivalent in FlexCAN
             break;
         }
         delay(10);
@@ -133,13 +133,14 @@ uint16_t send_can_data(void){
     }
 
     for(uint32_t addr = ORION_MSG_1; addr <= ORION_MSG_3; addr++){
-        int ret = CAN.write(CanMsg(CanStandardId(addr), sizeof(message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]), message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]));
+        // check if need to change anything to cast as CanMsg
+        int ret = CAN1.write(CanMsg(CanStandardId(addr), sizeof(message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]), message_data[LAST_ITEM + (addr - ORION_MSG_1) + 1]));
         if(!(ret == 0 || ret == 1)){
             if(DEBUG){
                 Serial.print("CAN Error: ");
                 Serial.println(ret);
             }
-            CAN.clearError();
+            // CAN.clearError();
             break;
         }
         delay(10);
@@ -187,7 +188,8 @@ bool establishConnection() {
     Serial1.begin(BAUDRATE, SERIAL_8N1);
     Serial1.setTimeout(1000);
     while(!Serial1) {};
-    CAN.begin(CanBitRate::BR_500k);
+    CAN1.begin(); // removed CanBitRate param
+    CAN1.setBaudRate(CanBitRate::BR_500k); // use BAUDRATE?, supposed to take in uint32_t
 
     return true;
 }
